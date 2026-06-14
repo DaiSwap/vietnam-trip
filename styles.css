@@ -472,6 +472,8 @@ body.reveal-fallback .reveal:not(.in){opacity:1;transform:none;transition:opacit
 .info-card ul li{margin-bottom:5px}
 .callout{border-left:3px solid var(--accent);padding-left:15px;color:var(--ink-2);font-size:14.5px;line-height:1.55;margin-top:16px}
 .callout b{color:var(--ink)}
+.info-soon{margin-top:18px;padding:14px 16px;background:var(--bg-2);border-radius:12px;font-size:13.5px;color:var(--ink-2);line-height:1.55;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.info-soon .badge-soon{position:static;flex-shrink:0}
 .pill-tag{
   display:inline-flex;align-items:center;gap:3px;
   font-family:inherit;font-size:12.5px;font-weight:500;
@@ -669,7 +671,6 @@ body.reveal-fallback .reveal:not(.in){opacity:1;transform:none;transition:opacit
 
 /* Route polyline — JS sets stroke-dasharray / dashoffset inline.
    Class only used to opt into the transition. */
-.leaflet-overlay-pane svg path.route-line{transition:stroke-dashoffset 1.2s cubic-bezier(.5,0,.2,1)}
 
 /* Onboarding step transitions */
 .onb-stepbody{will-change:transform,opacity}

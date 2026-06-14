@@ -284,35 +284,106 @@ const Profile = {
  * via sanitiseVote() before reaching the UI.
  */
 /* ============================================================
-   ROUTE PICKS — parallel store to TripVotes, populated by clicks
-   on Routes page activity matrix and curated stops.
-   - Binary set of place IDs (no yes/maybe/skip — just selected).
-   - localStorage only in Phase 1; group-sync via Firestore comes later.
-   - Resolution rule (used by Map/Results in Phase 2): if myVotes[id] is set,
-     use it; else if routePicks has id, treat as 'yes'; else null.
+   ROUTE PICKS — parallel store to TripVotes.
+   - localStorage is canonical for "my picks" (instant UI updates).
+   - Firestore mirror at /routePicks/{userLower} for the group view.
+   - Resolution rule (used by Map/Results): if myVotes[id] is set, use it;
+     else if routePicks has id, treat as 'yes'; else null.
    ============================================================ */
 const RoutePicks = {
+  collection: "routePicks",
   _lk: "routePicks_local",
   _listeners: [],
+  _everyoneCache: [],          // [{name, picks: [id, ...]}] — populated by subscribeAll
+  _migrated: false,            // one-shot guard so we don't push localStorage every refresh
+
+  // ---- LOCAL (canonical for "my picks") ----
   _get(){
     try {
       const arr = JSON.parse(localStorage.getItem(this._lk));
       return Array.isArray(arr) ? new Set(arr.filter(x => typeof x === "string")) : new Set();
     } catch(e){ Log.warn("RoutePicks._get", "parse failed; resetting", e); return new Set(); }
   },
-  _set(s){
+  _setLocal(s){
     try { localStorage.setItem(this._lk, JSON.stringify([...s])); }
-    catch(e){ Log.error("RoutePicks._set", "write failed", e); }
+    catch(e){ Log.error("RoutePicks._setLocal", "write failed", e); }
   },
   has(id){ return this._get().has(id); },
   ids(){ return [...this._get()]; },
+
   toggle(id){
     if(!byId(id)) return;                   // ignore unknown place IDs
     const s = this._get();
     if(s.has(id)) s.delete(id); else s.add(id);
-    this._set(s);
+    this._setLocal(s);
     this._listeners.forEach(fn => { try { fn(); } catch(e){ Log.warn("RoutePicks.toggle", "listener threw", e); } });
+    // Best-effort push to Firestore. UI doesn't wait; failures are logged.
+    this._pushToFirestore(s);
   },
+
+  // ---- FIRESTORE MIRROR ----
+  async _pushToFirestore(picksSet){
+    if(!_db) return;
+    const user = Profile.get().name;
+    if(!user || !NAME_RX.test(user)) return;
+    const userLower = user.toLowerCase();
+    try {
+      await _db.collection(this.collection).doc(userLower).set({
+        name: user,
+        picks: [...picksSet],
+        ts: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch(e){ Log.warn("RoutePicks._pushToFirestore", "write failed", e); }
+  },
+
+  /**
+   * One-shot sync of current localStorage state up to Firestore. Run on page load
+   * once Profile is set, so users who picked things before PR-D shipped get
+   * their state into the shared collection without having to re-toggle.
+   */
+  maybeMigrate(){
+    if(this._migrated) return;
+    if(!_db || !Profile.isComplete()) return;
+    this._migrated = true;
+    const s = this._get();
+    if(s.size > 0) this._pushToFirestore(s);
+  },
+
+  /** Subscribes to every user's pick set. Updates _everyoneCache + fires cb. */
+  subscribeAll(cb){
+    if(_db){
+      return _db.collection(this.collection).onSnapshot(snap => {
+        const arr = [];
+        snap.forEach(d => { const x = this._sanitiseDoc(d.data()); if(x) arr.push(x); });
+        this._everyoneCache = arr;
+        if(cb) cb(arr);
+      }, err => Log.error("RoutePicks.subscribeAll", "listener err", err));
+    } else {
+      // Local-only fallback: the group is just the current user.
+      const name = Profile.get().name || "You";
+      this._everyoneCache = [{ name, picks: this.ids() }];
+      if(cb) cb(this._everyoneCache);
+      return () => {};
+    }
+  },
+
+  /** Returns a Map of userLower → Set<placeId> built from the group cache. */
+  everyoneByUser(){
+    const m = new Map();
+    this._everyoneCache.forEach(u => m.set((u.name || "").toLowerCase(), new Set(u.picks || [])));
+    return m;
+  },
+
+  _sanitiseDoc(d){
+    if(!d || typeof d !== "object") return null;
+    const name = typeof d.name === "string" ? d.name.trim().slice(0, 24) : null;
+    if(!name || !NAME_RX.test(name)) return null;
+    const picks = Array.isArray(d.picks)
+      ? d.picks.filter(p => typeof p === "string" && byId(p)).slice(0, 50)
+      : [];
+    return { name, picks };
+  },
+
   onChange(fn){ this._listeners.push(fn); }
 };
 
@@ -959,6 +1030,9 @@ function onbFinish(){
   renderHomeGreeting();
   hydrateProfileTokens();      // re-fill any static data-profile placeholders
   applyVoteUI();
+  // Profile just became valid — sync any pre-existing RoutePicks up to Firestore.
+  RoutePicks._migrated = false;
+  RoutePicks.maybeMigrate();
   if(_pendingVote){ const {placeId,vote}=_pendingVote; _pendingVote=null; doVote(placeId,vote); }
 
   // First-time setup lands at the top of the current page so the user sees the hero/intro,
@@ -1337,42 +1411,29 @@ function initRoutes(){
   map.on("zoomend", refreshRouteZoom);
   setTimeout(refreshRouteZoom, 0);
 
-  let _layer = null;
   function showRoute(routeId){
     const r = ROUTES.find(x=>x.id===routeId); if(!r) return;
-    // Defensive cleanup so rapid switching between routes can't leave stale layers behind.
-    if(_layer){
-      _layer.clearLayers();
-      map.removeLayer(_layer);
-      _layer = null;
-    }
+    // Aggressive cleanup: sweep every overlay FeatureGroup off the map before adding
+    // the new one. The earlier _layer-tracked approach left stray DOM under rapid
+    // switching when polyline animations and fitBounds zooms overlapped. Now we just
+    // trust the map to tell us what's there and remove all of it.
+    map.eachLayer(layer => { if(layer instanceof L.FeatureGroup) map.removeLayer(layer); });
+
     const grp = L.featureGroup();
     const coords = [];
     r.stops.forEach((s,idx)=>{
       const p = byId(s.id); if(!p) return;
       const icon = L.divIcon({ className:"",
-        html:`<div class="rmk"><span class="rmk-num">${idx+1}</span><span class="rmk-name">${p.name}</span></div>`,
+        html:`<div class="rmk"><span class="rmk-num">${idx+1}</span><span class="rmk-name">${escapeHTML(p.name)}</span></div>`,
         iconSize:[22,22], iconAnchor:[11,11] });
       L.marker([p.lat,p.lng],{icon}).addTo(grp);
       coords.push([p.lat,p.lng]);
     });
-    const line = L.polyline(coords, { color:"#c2622f", weight:3, opacity:0.9 }).addTo(grp);
-    grp.addTo(map); _layer = grp;
-    if(coords.length>1) map.fitBounds(L.latLngBounds(coords), { padding:[60,60] });
-    // Animate the polyline drawing in via stroke-dashoffset
-    if(!prefersReducedMotion()){
-      const path = line.getElement();
-      if(path){
-        path.classList.add("route-line");
-        try {
-          const len = path.getTotalLength();
-          path.style.strokeDasharray = len + " " + len;
-          path.style.strokeDashoffset = String(len);
-          void path.getBoundingClientRect();      // force reflow
-          path.style.strokeDashoffset = "0";
-        } catch (e) { Log.warn("initRoutes", "polyline animation skipped", e); }
-      }
-    }
+    L.polyline(coords, { color:"#c2622f", weight:3, opacity:0.9 }).addTo(grp);
+    grp.addTo(map);
+    // animate:false on fitBounds — overlapping zoom animations were the second
+    // source of the "route behaves differently" bug. Snap the viewport instead.
+    if(coords.length>1) map.fitBounds(L.latLngBounds(coords), { padding:[60,60], animate:false });
     renderRouteMeta(r);
   }
   function renderRouteMeta(r){
@@ -1639,12 +1700,35 @@ function _storyNights(p){ return p.tier === 1 ? 3 : p.tier === 2 ? 2 : 1; }
 /** Returns the places the group is leaning toward — those with a vote
  *  score above the median across all places. Math stays here. */
 function pickedByGroup(){
-  const rows = PLACES.map(d => {
-    const vs = ALL_VOTES.filter(v => v.placeId === d.id);
-    const yes = vs.filter(v => v.vote === "yes").length;
-    const maybe = vs.filter(v => v.vote === "maybe").length;
-    return { place: d, score: yes * 2 + maybe };
+  // Per-user Places votes from the live ALL_VOTES stream
+  const placeVotesByUser = {};
+  ALL_VOTES.forEach(v => {
+    const u = (v.name || "").toLowerCase();
+    if(!u) return;
+    if(!placeVotesByUser[u]) placeVotesByUser[u] = {};
+    placeVotesByUser[u][v.placeId] = v.vote;
   });
+
+  // Per-user RoutePicks from the group cache
+  const routePicksByUser = RoutePicks.everyoneByUser();
+
+  // Union of all user identities seen across both sources
+  const allUsers = new Set([...Object.keys(placeVotesByUser), ...routePicksByUser.keys()]);
+
+  // Per-place score, applying Places-overrides-Routes inside each user
+  const rows = PLACES.map(d => {
+    let score = 0;
+    allUsers.forEach(u => {
+      const placeVote = placeVotesByUser[u]?.[d.id];
+      const routePicked = routePicksByUser.get(u)?.has(d.id);
+      if(placeVote === "yes") score += 2;
+      else if(placeVote === "maybe") score += 1;
+      else if(placeVote === "skip") { /* explicit no — score += 0 */ }
+      else if(routePicked) score += 2;       // implicit yes when no Places opinion
+    });
+    return { place: d, score };
+  });
+
   if(!rows.length) return [];
   const scores = rows.map(r => r.score).slice().sort((a, b) => a - b);
   const mid = scores.length / 2;
@@ -1826,6 +1910,11 @@ document.addEventListener("DOMContentLoaded",()=>{
   observeReveals();
   // live subscription drives all vote UI
   TripVotes.subscribe(arr=>{ ALL_VOTES=arr; applyVoteUI(); });
+  // group-sync for RoutePicks — keeps pickedByGroup / "What most picked" in sync
+  // with every user's Routes selections. Migration nudges any pre-PR-D
+  // localStorage state up to Firestore once on page load.
+  RoutePicks.subscribeAll(() => applyVoteUI());
+  RoutePicks.maybeMigrate();
 
   const page=document.body.dataset.page;
   if(page==="map") initMap();
