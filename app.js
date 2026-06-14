@@ -721,14 +721,19 @@ function injectChrome(){
     brand.addEventListener("click", e => {
       if(e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
       e.preventDefault();
-      const mv = myVotes();
-      const hasPicks = Object.values(mv).some(v => v === "yes" || v === "maybe");
+      // Uses pickedByMe() so Routes picks count toward "has data" — not just Places votes.
+      const hasPicks = pickedByMe().length > 0;
       const here = (location.pathname.split("/").pop() || "index.html").toLowerCase();
       if(hasPicks){
         if(here === "results.html"){
           const el = document.getElementById("trip-story");
-          if(el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-          else window.location.href = "results.html#trip-story";
+          if(el){
+            el.dataset.mode = "mine";          // brand-click always lands on My picks tab
+            if(typeof renderTripStory === "function") renderTripStory();
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+          } else {
+            window.location.href = "results.html#trip-story";
+          }
         } else {
           window.location.href = "results.html#trip-story";
         }
