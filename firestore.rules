@@ -1,0 +1,101 @@
+// Firestore security rules for mY'sTory.
+//
+// HOW TO DEPLOY
+// 1. Copy this entire file's contents.
+// 2. Open https://console.firebase.google.com/, select the mY'sTory project.
+// 3. Build → Firestore Database → Rules tab.
+// 4. Paste over the existing rules and click Publish.
+//
+// WHAT THESE RULES DO
+// - Three collections: /votes, /suggestions, /routePicks.
+// - Public reads (anyone can see aggregates — the site needs this to render).
+// - Writes are validated server-side: strict field whitelist + types + length
+//   + regex + (where applicable) doc-ID must match the user's name.
+// - Deletes are allowed at family scale — anyone can clear their own vote /
+//   suggestion / pick. Accepted trade-off; documented here as the official
+//   posture rather than relying on app-side prevention.
+//
+// HARD CONSTRAINTS PRESERVED
+// - Anonymity: names are stored (so users can edit their own votes) but never
+//   displayed publicly in the site UI. The rules just keep the data clean —
+//   the app code honours the display rule.
+// - Free tier: validation is cheap; the entire app stays well inside Cloud
+//   Firestore's Spark (free) quotas at family scale.
+//
+// WHEN ADDING A NEW PLACE
+// Update the place-ID list in every spot marked `// PLACE_IDS` below.
+// Three spots: votes validator, routePicks list-content check, and the
+// inline list for the routePicks hasOnly call. Keep them in sync.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -----------------------------------------------------------------
+    // /votes  — Places-page yes/maybe/skip votes.
+    // Doc ID format: ${userNameLower}__${placeId}
+    // -----------------------------------------------------------------
+    match /votes/{docId} {
+      allow read: if true;
+      allow create, update: if isValidVote(request.resource.data, docId);
+      allow delete: if true;
+    }
+    function isValidVote(data, docId) {
+      return data.keys().hasOnly(["name", "placeId", "vote", "ts"])
+          && data.name is string
+          && data.name.size() >= 1 && data.name.size() <= 24
+          && data.name.matches("^[\\p{L}\\p{N} .'\\-]{1,24}$")
+          && data.placeId is string
+          // PLACE_IDS
+          && data.placeId in ["hagiang","sapa","hanoi","puluong","ninhbinh","catba","phongnha","hue","danang","hoian","quynhon","hcmc"]
+          && data.vote in ["yes", "maybe", "skip"]
+          && docId == data.name.lower() + "__" + data.placeId;
+    }
+
+    // -----------------------------------------------------------------
+    // /suggestions  — Anonymous "missing place" suggestions on Places.
+    // Doc ID format: ${userNameLower}__${slug}
+    // -----------------------------------------------------------------
+    match /suggestions/{docId} {
+      allow read: if true;
+      allow create, update: if isValidSuggestion(request.resource.data, docId);
+      allow delete: if true;
+    }
+    function isValidSuggestion(data, docId) {
+      return data.keys().hasOnly(["name", "slug", "byNameLower", "ts"])
+          && data.name is string
+          && data.name.size() >= 2 && data.name.size() <= 100
+          && data.slug is string
+          && data.slug.size() >= 1 && data.slug.size() <= 32
+          && data.slug.matches("^[a-z0-9-]+$")
+          && data.byNameLower is string
+          && data.byNameLower.size() >= 1 && data.byNameLower.size() <= 24
+          && docId == data.byNameLower + "__" + data.slug;
+    }
+
+    // -----------------------------------------------------------------
+    // /routePicks  — Routes-page selections (PR-D).
+    // Doc ID format: ${userNameLower}
+    // -----------------------------------------------------------------
+    match /routePicks/{userId} {
+      allow read: if true;
+      allow create, update: if isValidPicksDoc(request.resource.data, userId);
+      allow delete: if true;
+    }
+    function isValidPicksDoc(data, docId) {
+      return data.keys().hasOnly(["name", "picks", "ts"])
+          && data.name is string
+          && data.name.size() >= 1 && data.name.size() <= 24
+          && data.name.matches("^[\\p{L}\\p{N} .'\\-]{1,24}$")
+          && data.name.lower() == docId
+          && data.picks is list
+          && data.picks.size() <= 50
+          // PLACE_IDS
+          && data.picks.toSet().hasOnly([
+               "hagiang","sapa","hanoi","puluong","ninhbinh","catba",
+               "phongnha","hue","danang","hoian","quynhon","hcmc"
+             ]);
+    }
+  }
+}
