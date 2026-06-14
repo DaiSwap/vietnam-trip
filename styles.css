@@ -198,10 +198,11 @@ body.reveal-fallback .reveal:not(.in){opacity:1;transform:none;transition:opacit
   white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.12);
   text-align:center;line-height:1.3;
 }
+/* Bottom-right so it doesn't sit on top of the legend (bottom-left) */
 .route-info{
-  position:absolute;left:16px;bottom:16px;z-index:550;
-  max-width:min(420px,calc(100% - 32px));
-  background:rgba(255,255,255,0.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  position:absolute;right:16px;bottom:16px;z-index:550;
+  max-width:min(380px,calc(100% - 32px));
+  background:rgba(255,255,255,0.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
   border:1px solid var(--hair);border-radius:14px;
   padding:11px 16px;box-shadow:0 6px 20px rgba(0,0,0,0.14);
   display:flex;flex-direction:column;gap:3px;
@@ -212,7 +213,7 @@ body.reveal-fallback .reveal:not(.in){opacity:1;transform:none;transition:opacit
 .route-info .ri-main{font-size:14px;color:var(--ink-2)}
 .route-info .ri-sub{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
 .route-info .ri-dim{color:var(--ink-3);font-weight:500}
-/* On mobile the legend (bottom-left) is hidden, so we use that space */
+/* Mobile: legend is already hidden (@media max-width:680px), so stretch the pill across */
 @media(max-width:680px){
   .route-info{left:12px;right:12px;bottom:12px;max-width:none}
 }
@@ -309,30 +310,43 @@ body.reveal-fallback .reveal:not(.in){opacity:1;transform:none;transition:opacit
 .res-list{margin-top:26px;display:flex;flex-direction:column;gap:12px}
 .empty{color:var(--ink-3);text-align:center;padding:60px 20px;font-size:16px}
 
-/* Horizontal-bar results chart: place name + a track filled by yes (green) and maybe (amber). */
-.res-legend{margin:18px 0 22px;text-align:center;font-size:13.5px;color:var(--ink-2)}
-.res-chart{display:flex;flex-direction:column;gap:10px}
+/* Horizontal-bar results chart: clean list of bars, place name + counts. */
+.res-chart{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .res-bar{
   display:grid;
-  grid-template-columns:48px minmax(0,1.4fr) minmax(0,3fr) minmax(0,140px);
+  grid-template-columns:36px minmax(0,1.3fr) minmax(0,3fr) minmax(0,120px);
   align-items:center;gap:14px;
-  padding:14px 18px;
-  background:var(--bg);border:1px solid var(--hair);border-radius:14px;
-  cursor:pointer;transition:transform .2s ease,box-shadow .25s ease,border-color .2s ease;
+  padding:10px 14px;
+  background:transparent;border:0;border-radius:10px;
+  cursor:pointer;transition:background .15s ease;
 }
-.res-bar:hover{border-color:rgba(0,0,0,0.18);box-shadow:0 4px 16px rgba(0,0,0,0.06);transform:translateY(-1px)}
+.res-bar:hover{background:var(--bg-2)}
 .res-bar:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.rb-rank{font-size:13px;font-weight:700;color:var(--ink-3);letter-spacing:.04em}
-.rb-name{font-size:15.5px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rb-track{position:relative;height:24px;background:var(--bg-2);border-radius:8px;overflow:hidden}
-.rb-fill-yes,.rb-fill-maybe{position:absolute;top:0;bottom:0;border-radius:8px;transition:width .55s cubic-bezier(.2,.7,.2,1),left .55s cubic-bezier(.2,.7,.2,1)}
-.rb-fill-yes{left:0;background:var(--yes)}
-.rb-fill-maybe{background:var(--maybe);border-radius:0 8px 8px 0}
+.rb-rank{font-size:12px;font-weight:700;color:var(--ink-3);letter-spacing:.04em}
+.rb-name{font-size:15px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rb-track{position:relative;height:18px;background:rgba(0,0,0,0.05);border-radius:6px;overflow:hidden}
+.rb-fill-yes,.rb-fill-maybe{position:absolute;top:0;bottom:0;transition:width .55s cubic-bezier(.2,.7,.2,1),left .55s cubic-bezier(.2,.7,.2,1)}
+.rb-fill-yes{left:0;background:var(--yes);border-radius:6px 0 0 6px}
+.rb-fill-maybe{background:var(--maybe)}
+.rb-fill-yes:only-child,.rb-fill-yes:last-child{border-radius:6px}
+.rb-fill-maybe:last-child{border-radius:0 6px 6px 0}
 .rb-counts{display:flex;gap:10px;font-size:13px;font-weight:600;white-space:nowrap;justify-content:flex-end}
 .rb-y{color:var(--yes)} .rb-m{color:var(--maybe)} .rb-s{color:var(--ink-3)}
 .res-voters{margin-top:28px;padding:14px 18px;text-align:center;background:var(--bg-2);border-radius:12px;font-size:14px;color:var(--ink-2);line-height:1.6}
 .res-voters b{color:var(--ink);font-weight:600}
 .res-voters .rv-dim{color:var(--ink-3);font-size:13px;display:block;margin-top:2px}
+
+/* End-of-page next-step CTAs (routes.html, places.html) */
+.next-cta{
+  max-width:560px;margin:0 auto;padding:30px 28px;
+  background:linear-gradient(135deg,#fff8ee 0%,#fffdf9 100%);
+  border:1px solid rgba(194,98,47,0.18);border-radius:20px;
+  text-align:center;
+}
+.next-cta h3{font-size:clamp(20px,2.4vw,26px);font-weight:700;letter-spacing:-.02em;margin-bottom:8px;color:var(--ink)}
+.next-cta p{color:var(--ink-2);font-size:15px;line-height:1.55;margin-bottom:18px;max-width:46ch;margin-left:auto;margin-right:auto}
+.next-cta p em{font-style:italic;color:var(--ink)}
+.next-cta .hbtn{display:inline-flex}
 
 /* ---------- trip-story block (Results page closing scene) ---------- */
 .trip-story{
