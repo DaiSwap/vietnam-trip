@@ -192,6 +192,33 @@ body.reveal-fallback .reveal:not(.in){opacity:1;transform:none;transition:opacit
 .legend .sw{width:11px;height:11px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
 .sw-yes{background:var(--yes)} .sw-maybe{background:var(--maybe)} .sw-skip{background:var(--skip)} .sw-none{background:#fff;border-color:var(--ink)}
 
+/* "My route" overlay — distance labels + footer pill */
+.dist-label{
+  background:rgba(255,255,255,0.96);border:1px solid var(--hair);
+  padding:3px 9px;border-radius:8px;
+  font-size:11px;font-weight:700;color:var(--ink);
+  white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.12);
+  text-align:center;line-height:1.3;
+}
+.route-info{
+  position:absolute;left:16px;bottom:16px;z-index:550;
+  max-width:min(420px,calc(100% - 32px));
+  background:rgba(255,255,255,0.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid var(--hair);border-radius:14px;
+  padding:11px 16px;box-shadow:0 6px 20px rgba(0,0,0,0.14);
+  display:flex;flex-direction:column;gap:3px;
+  font-size:13px;color:var(--ink-2);line-height:1.4;
+}
+.route-info[hidden]{display:none}
+.route-info b{color:var(--ink);font-weight:600}
+.route-info .ri-main{font-size:14px;color:var(--ink-2)}
+.route-info .ri-sub{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.route-info .ri-dim{color:var(--ink-3);font-weight:500}
+/* On mobile the legend (bottom-left) is hidden, so we use that space */
+@media(max-width:680px){
+  .route-info{left:12px;right:12px;bottom:12px;max-width:none}
+}
+
 /* leaflet markers */
 .mk{position:relative}
 .mk-dot{display:block;width:15px;height:15px;border-radius:50%;background:#fff;border:3px solid var(--ink);box-shadow:0 2px 8px rgba(0,0,0,0.45);transition:transform .2s cubic-bezier(.3,1.4,.5,1),background .2s,border-color .2s}

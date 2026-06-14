@@ -28,6 +28,7 @@
       <div class="map-controls">
         <button id="b-sat" class="on">Satellite</button>
         <button id="b-light">Map</button>
+        <button id="b-myroute" type="button" aria-pressed="false">My route</button>
       </div>
       <div class="legend">
         <div class="row"><span class="sw sw-yes"></span> Yes</div>
@@ -35,6 +36,7 @@
         <div class="row"><span class="sw sw-skip"></span> Skip</div>
         <div class="row"><span class="sw sw-none"></span> Not voted</div>
       </div>
+      <div class="route-info" id="route-info" hidden aria-live="polite"></div>
       <div id="map"></div>
     </div>
   </div>

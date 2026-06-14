@@ -130,7 +130,7 @@ const PLACES = [
    stops carry per-stop nights so the leg list reads cleanly. */
 const ROUTES = [
   { id:"north-loop", name:"Northern Loop", days:11,
-    note:"Maximises the north's tier-1 picks. Fly in/out of Hanoi — simplest visa & cheapest fares.",
+    note:"Hits the most-recommended northern places without leaving the region. Fly in and out of Hanoi — simplest visa, cheapest fares.",
     stops:[
       { id:"hanoi",    nights:1 },
       { id:"ninhbinh", nights:2 },
@@ -139,8 +139,8 @@ const ROUTES = [
       { id:"catba",    nights:2 },
       { id:"hanoi",    nights:1 }
     ] },
-  { id:"open-jaw", name:"North + Central (open-jaw)", days:15,
-    note:"The full trip per the travel page recommendation — in Hanoi, out Da Nang. One e-visa, no backtracking.",
+  { id:"north-central", name:"North + Central", days:15,
+    note:"The full trip across two regions — fly into Hanoi, fly out of Da Nang. One e-visa, no backtracking.",
     stops:[
       { id:"hanoi",    nights:1 },
       { id:"ninhbinh", nights:2 },
@@ -151,8 +151,8 @@ const ROUTES = [
       { id:"hue",      nights:1 },
       { id:"hoian",    nights:2 }
     ] },
-  { id:"quiet-adv", name:"Quiet + Adventure (tier-1 focus)", days:10,
-    note:"Skips the busiest stops. Every place is tier 1 or 2 — adventure-heavy, crowd-light.",
+  { id:"quiet-adv", name:"Quiet + Adventure", days:10,
+    note:"Skips the touristy stops. Only quieter, activity-heavy places — most adventure per day with the least crowd.",
     stops:[
       { id:"hanoi",    nights:1 },
       { id:"puluong",  nights:2 },
@@ -360,7 +360,13 @@ const TripVotes = {
    3) SHARED STATE + HELPERS
    ============================================================ */
 const byId = id => PLACES.find(p=>p.id===id);
-const tierTxt = t => t===1 ? "Tier 1 · quiet + activity-rich" : t===2 ? "Tier 2 · good, one tradeoff" : "Tier 3 · scenic but commercial";
+/** Short badge label used on the place cards (places.html). Plain-English replacement
+ *  for the internal "tier" nomenclature — visitors don't care what tier means. */
+const tierLabel = t => t === 1 ? "Recommended" : t === 2 ? "Good pick" : "Touristy";
+/** Longer descriptor for the detail sheet header. */
+const tierTxt = t => t === 1 ? "Recommended · quiet and activity-rich"
+                   : t === 2 ? "Good pick · one tradeoff"
+                             : "Popular but commercial";
 const tierCls = t => "tier-"+t;
 function segs(n, cls){ let s=""; for(let i=1;i<=5;i++) s+=`<div class="seg ${i<=n?cls:''}"></div>`; return s; }
 
@@ -751,15 +757,22 @@ function applyVoteUI(){
   });
   // results page
   if(document.body.dataset.page==="results") renderResults();
+  // map page: keep the "My route" overlay in sync with the live votes
+  if(_myRouteOn && window._mapInstance) renderMyRoute(window._mapInstance);
 }
 
 /* ============================================================
    6) PAGE INITS
    ============================================================ */
+/* "My route" overlay state — tied to the map page. */
+let _myRouteOn = false;
+let _myRouteLayer = null;
+
 function initMap(){
   if(typeof L==="undefined"){ return; }
   const map = L.map("map",{ zoomControl:false, scrollWheelZoom:false, minZoom:5, maxZoom:13 });
   L.control.zoom({position:"topright"}).addTo(map);
+  window._mapInstance = map;     // applyVoteUI re-renders the route through this
   const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{attribution:"Tiles © Esri",maxZoom:18});
   const labels = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",{maxZoom:18,opacity:0.9});
   const light = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{attribution:"© OpenStreetMap, © CARTO",subdomains:"abcd",maxZoom:19});
@@ -795,7 +808,86 @@ function initMap(){
   bSat.addEventListener("click",()=>{ map.addLayer(sat); map.addLayer(labels); map.removeLayer(light); bSat.classList.add("on"); bLight.classList.remove("on"); });
   bLight.addEventListener("click",()=>{ map.addLayer(light); map.removeLayer(sat); map.removeLayer(labels); bLight.classList.add("on"); bSat.classList.remove("on"); });
 
+  /* "My route" toggle: connects all yes / maybe places into a polyline with per-leg distances. */
+  const bRoute = document.getElementById("b-myroute");
+  if(bRoute){
+    bRoute.addEventListener("click", () => {
+      _myRouteOn = !_myRouteOn;
+      bRoute.classList.toggle("on", _myRouteOn);
+      bRoute.setAttribute("aria-pressed", String(_myRouteOn));
+      bRoute.textContent = _myRouteOn ? "Hide my route" : "My route";
+      renderMyRoute(map);
+    });
+  }
+
   applyVoteUI();
+}
+
+/**
+ * Draws (or clears) the user's "yes + maybe" route on the map.
+ * Places are ordered north→south by latitude — Vietnam stretches roughly on that axis,
+ * so the sequence reads as a real trip sketch. Per-leg straight-line distance is
+ * shown as a label at the segment midpoint; total + stop count goes into #route-info.
+ * Re-runnable on every vote change.
+ */
+function renderMyRoute(map){
+  if(!map) return;
+  if(_myRouteLayer){ map.removeLayer(_myRouteLayer); _myRouteLayer = null; }
+  const info = document.getElementById("route-info");
+
+  if(!_myRouteOn){
+    if(info){ info.hidden = true; info.innerHTML = ""; }
+    return;
+  }
+
+  const mv = myVotes();
+  const picked = PLACES.filter(p => mv[p.id] === "yes" || mv[p.id] === "maybe");
+
+  if(picked.length === 0){
+    if(info){ info.hidden = false; info.innerHTML = `<span>Vote <b>Yes</b> or <b>Maybe</b> on places to build your route.</span>`; }
+    return;
+  }
+  if(picked.length === 1){
+    if(info){ info.hidden = false; info.innerHTML = `<span>You picked <b>${escapeHTML(picked[0].name)}</b>. Pick one more to start measuring distances.</span>`; }
+    return;
+  }
+
+  // Order north → south so the line reads like a real itinerary.
+  picked.sort((a, b) => b.lat - a.lat);
+
+  const grp = L.featureGroup();
+  const coords = picked.map(p => [p.lat, p.lng]);
+  L.polyline(coords, { color: "#c2622f", weight: 3, opacity: 0.9 }).addTo(grp);
+
+  let totalKm = 0;
+  for(let i = 0; i < picked.length - 1; i++){
+    const a = picked[i], b = picked[i + 1];
+    const km = haversineKm(a.lat, a.lng, b.lat, b.lng);
+    totalKm += km;
+    const mid = [(a.lat + b.lat) / 2, (a.lng + b.lng) / 2];
+    L.marker(mid, {
+      icon: L.divIcon({
+        className: "",
+        html: `<div class="dist-label">${Math.round(km)} km</div>`,
+        iconSize: [60, 22],
+        iconAnchor: [30, 11]
+      }),
+      keyboard: false,
+      interactive: false
+    }).addTo(grp);
+  }
+
+  grp.addTo(map);
+  _myRouteLayer = grp;
+
+  if(info){
+    const yesN = picked.filter(p => mv[p.id] === "yes").length;
+    const maybeN = picked.length - yesN;
+    info.hidden = false;
+    info.innerHTML = `
+      <span class="ri-main"><b>${picked.length} stops</b> &middot; <b>${Math.round(totalKm)} km</b> total <span class="ri-dim">(straight-line)</span></span>
+      <span class="ri-sub">${yesN} yes &middot; ${maybeN} maybe &middot; ordered north → south</span>`;
+  }
 }
 
 function initPlaces(){
@@ -805,7 +897,7 @@ function initPlaces(){
     const c=document.createElement("div");
     c.className="card reveal"; c.style.transitionDelay=(i%3*0.05)+"s";
     c.innerHTML=`
-      <div class="c-head"><span class="c-tier ${tierCls(d.tier)}">Tier ${d.tier}</span></div>
+      <div class="c-head"><span class="c-tier ${tierCls(d.tier)}">${tierLabel(d.tier)}</span></div>
       <div class="c-name">${d.name}</div>
       <div class="c-reg">${d.region}</div>
       <div class="meters">
@@ -1044,6 +1136,20 @@ function budgetFit(cost){
   return `<span class="rm-chip fit-bad">over by ${formatINR(cost-hard)}</span>`;
 }
 function formatINR(n){ return "₹" + Math.round(n).toLocaleString("en-IN"); }
+
+/**
+ * Great-circle distance between two lat/lng pairs in kilometres (Haversine formula).
+ * "Straight-line" / "as the crow flies" — not road distance. Used for the live
+ * "My route" overlay on the map page; road routing would need an external API.
+ */
+function haversineKm(lat1, lng1, lat2, lng2){
+  const R = 6371;
+  const toRad = x => x * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat/2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
 
 /**
  * Substitutes `{n}` placeholders in PLACES / ROUTES strings with the user's actual group size.
