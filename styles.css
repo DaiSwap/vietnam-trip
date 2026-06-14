@@ -222,14 +222,15 @@ body.reveal-fallback .reveal:not(.in){opacity:1;transform:none;transition:opacit
 .mk-name{position:absolute;left:22px;top:50%;transform:translateY(-50%);white-space:nowrap;font-family:var(--font);font-size:12.5px;font-weight:600;color:#fff;background:rgba(0,0,0,0.6);padding:2px 9px;border-radius:7px;box-shadow:0 2px 8px rgba(0,0,0,0.3);pointer-events:none;transition:opacity .15s;opacity:0}
 .leaflet-marker-icon:hover .mk-name,
 .leaflet-marker-icon.active .mk-name,
-.leaflet-marker-icon.v-yes .mk-name,
-.leaflet-marker-icon.v-maybe .mk-name,
-.leaflet-marker-icon.v-skip .mk-name,
 #map.zoomed-in .mk-name{opacity:1}
-/* Selected markers float above unselected so labels don't get covered. */
+/* Selected markers float above unselected so labels stay on top when revealed. */
 .leaflet-marker-icon.v-yes,
 .leaflet-marker-icon.v-maybe,
 .leaflet-marker-icon.v-skip{z-index:600 !important}
+/* Selected dots are slightly larger so picks read at a glance even with labels hidden. */
+.leaflet-marker-icon.v-yes .mk-dot,
+.leaflet-marker-icon.v-maybe .mk-dot,
+.leaflet-marker-icon.v-skip .mk-dot{transform:scale(1.25)}
 .leaflet-marker-icon:hover .mk-dot{transform:scale(1.35)}
 .leaflet-marker-icon.v-yes .mk-dot{background:var(--yes);border-color:#fff}
 .leaflet-marker-icon.v-maybe .mk-dot{background:var(--maybe);border-color:#fff}
