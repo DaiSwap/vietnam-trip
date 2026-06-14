@@ -8,14 +8,20 @@ open file.
 
 ## Currently queued
 
-Three PRs to finish the UX restructure that shipped in PRs #18–#21
-(see the 2026-06-15 session log for the picture so far).
+Four queued items. The first is a bundle of small fixes; the next
+three are the bigger work that finishes the UX restructure that
+shipped in PRs #18–#22.
 
-| # | Branch label | One-line summary | Plan written? |
+| # | Branch label | One-line summary | Plan |
 |---|---|---|---|
-| **B** | `feature/home-flow-diagram` | Replace the bare Home page with a calligraphic flowing-curve SVG illustration of the trip journey. Single Plan-the-trip CTA below. Option A from the UX brainstorm. | Not yet — write when starting |
-| **C** | `feature/curated-routes-redesign` | Replace 3-cards-above-map with tabs + summary line + map + horizontal flow of city pills below. The map itself stays. | Not yet |
-| **D** | `feature/route-picks-firestore-sync` | Sync `RoutePicks` to Firestore so the group view ("What most picked") includes other users' Routes selections. Currently localStorage only. Needs Firestore rules update. | Not yet |
+| **02** | `fix/02-quick-fixes` | Five small fixes bundled — missed zoom threshold + curated route marker labels + stale-state bug + suggestion list/count + suggestion guardrails. | [`02-quick-fixes.md`](./02-quick-fixes.md) |
+| **03 (PR-B)** | `feature/home-flow-diagram` | Replace the bare Home page with a calligraphic flowing-curve SVG of the trip journey. Single Plan-the-trip CTA. | [`03-home-flow-diagram.md`](./03-home-flow-diagram.md) |
+| **04 (PR-C)** | `feature/curated-routes-redesign` | Replace 3-cards-above-map with tabs + summary + map + horizontal city flow. | [`04-curated-routes-redesign.md`](./04-curated-routes-redesign.md) |
+| **05 (PR-D)** | `feature/routepicks-firestore-sync` | Sync `RoutePicks` to Firestore so "What most picked" includes other users' Routes picks. | [`05-routepicks-firestore-sync.md`](./05-routepicks-firestore-sync.md) |
+
+Also see [`../feedback-log.md`](../feedback-log.md) for the full
+chronological list of every piece of user feedback with its current
+status — that doc is the source of truth for "what does the user want."
 
 ## After PR-D — small follow-ups
 
