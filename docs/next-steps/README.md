@@ -17,12 +17,18 @@ Three PRs to finish the UX restructure that shipped in PRs #18–#21
 | **C** | `feature/curated-routes-redesign` | Replace 3-cards-above-map with tabs + summary line + map + horizontal flow of city pills below. The map itself stays. | Not yet |
 | **D** | `feature/route-picks-firestore-sync` | Sync `RoutePicks` to Firestore so the group view ("What most picked") includes other users' Routes selections. Currently localStorage only. Needs Firestore rules update. | Not yet |
 
+## After PR-D — small follow-ups
+
+| Item | Note |
+|---|---|
+| Remove the `Scroll ↓` cue arrow under the home hero | Once PR-B's flow diagram is rendering below the hero, the explicit scroll cue is redundant. Wait until the page below the hero feels visually complete (post-D), then drop the `.scrollcue` block. |
+
 ## Held back for later
 
 | Idea | Why parked |
 |---|---|
-| **01 — Day-by-day calendar dates** ([`01-day-by-day-dates.md`](./01-day-by-day-dates.md)) | Plan was ready before the restructure. Paused until B/C/D ship. |
-| Photos & food gallery | Was a "Soon" tile, removed from Home/Results. Revisit when there's time + content. |
+| **01 — Day-by-day calendar dates** ([`01-day-by-day-dates.md`](./01-day-by-day-dates.md)) | Plan was ready before the restructure. Paused until B/C/D ship. **Tile already shown on Results as "Soon · Coming next phase".** |
+| Photos & food gallery | Tile shown on Results as "Soon · Coming next phase". Build when there's time + content. |
 | "X days to departure" countdown badge | Only useful after date feature ships. |
 | Per-user displayed names on Results | Explicit user rule: anonymity is non-negotiable. |
 
