@@ -579,6 +579,80 @@ body.reveal-fallback .reveal:not(.in){opacity:1;transform:none;transition:opacit
 .greet .g-edit{margin-top:10px;background:transparent;border:1px solid rgba(194,98,47,0.4);color:var(--accent);font-family:inherit;font-weight:600;font-size:13px;padding:6px 14px;border-radius:100px;cursor:pointer}
 .greet .g-edit:hover{background:rgba(194,98,47,0.08)}
 
+/* ---------- home · flow diagram ---------- */
+.flow{padding:30px 24px 80px;text-align:center}
+.flow .tag{margin-bottom:12px}
+.flow-title{
+  font-size:clamp(24px,3.4vw,36px);font-weight:700;letter-spacing:-.02em;
+  line-height:1.18;max-width:680px;margin:0 auto 28px;
+}
+.flow-svg{
+  width:100%;max-width:880px;height:auto;display:block;margin:0 auto;
+  overflow:visible;
+}
+
+/* Main strokes — warm accent, generous round caps for a hand-drawn feel. */
+.flow-main{
+  fill:none;stroke:var(--accent);stroke-width:2.8;
+  stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:1300;stroke-dashoffset:1300;
+  animation:flow-draw 2.4s 0.25s ease-out forwards;
+}
+.flow-spur{
+  fill:none;stroke:var(--accent);stroke-width:2;
+  stroke-linecap:round;stroke-dasharray:7 6;
+  opacity:0;animation:flow-spur-in .9s 1.6s ease-out forwards;
+}
+
+/* Dots */
+.flow-dot{fill:var(--accent);opacity:0;animation:flow-fade .35s ease-out forwards}
+.flow-dot.start{fill:var(--ink)}
+.flow-dot.end{fill:var(--accent);stroke:#fff;stroke-width:2.5;
+  filter:drop-shadow(0 1px 3px rgba(194,98,47,0.35))}
+.flow-dot.optional{fill:var(--bg);stroke:var(--accent);stroke-width:2;stroke-dasharray:2 2}
+
+/* Labels — main vs optional sublabels */
+.flow-label{
+  font-family:inherit;font-size:14px;font-weight:600;
+  fill:var(--ink);text-anchor:middle;letter-spacing:-.01em;
+  opacity:0;animation:flow-fade .35s ease-out forwards;
+}
+.flow-sublabel{
+  font-family:inherit;font-size:10px;font-weight:600;
+  fill:var(--ink-3);text-anchor:middle;letter-spacing:.08em;
+  text-transform:uppercase;
+  opacity:0;animation:flow-fade .35s ease-out forwards;
+}
+
+/* Stagger dot/label reveal to match the main line's draw direction */
+.flow-stage[data-stage="you"]      *{animation-delay:0.3s}
+.flow-stage[data-stage="routes"]   *{animation-delay:0.9s}
+.flow-stage[data-stage="map"]      *{animation-delay:1.6s}
+.flow-stage[data-stage="results"]  *{animation-delay:2.2s}
+.flow-stage[data-stage="places"]   *{animation-delay:2.5s}
+.flow-stage[data-stage="travel"]   *{animation-delay:2.7s}
+
+.flow-cta{margin-top:36px;padding:14px 30px;font-size:15.5px}
+
+@keyframes flow-draw{to{stroke-dashoffset:0}}
+@keyframes flow-fade{to{opacity:1}}
+@keyframes flow-spur-in{to{opacity:0.55}}
+
+/* Reduced motion — show everything statically */
+@media(prefers-reduced-motion: reduce){
+  .flow-main{animation:none;stroke-dashoffset:0;opacity:1}
+  .flow-spur{animation:none;opacity:0.55}
+  .flow-dot,.flow-label,.flow-sublabel{animation:none;opacity:1}
+}
+
+@media(max-width:600px){
+  .flow{padding:24px 14px 60px}
+  .flow-title{font-size:21px;margin-bottom:20px;max-width:none}
+  .flow-label{font-size:12px}
+  .flow-sublabel{font-size:9px}
+  .flow-cta{margin-top:24px;padding:13px 26px;font-size:14.5px}
+}
+
 /* ---------- routes page · curated routes ---------- */
 /* Compact tabs replace the old 3-card picker. */
 .route-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;justify-content:center}

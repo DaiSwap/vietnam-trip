@@ -28,9 +28,61 @@
   <div class="scrollcue"><span>Scroll</span><span class="chev"></span></div>
 </section>
 
-<section class="section center" style="padding-top:40px">
+<section class="section center" style="padding-top:30px;padding-bottom:0">
   <div class="wrap">
     <div id="greet" class="greet"></div>
+  </div>
+</section>
+
+<section class="flow">
+  <div class="wrap">
+    <div class="tag reveal">How it goes</div>
+    <h2 class="flow-title reveal">From you, to a trip the group agreed on.</h2>
+
+    <svg class="flow-svg reveal" viewBox="0 0 900 340" role="img"
+         aria-label="Trip-planning journey: from you, through Routes, Map and Results, with Places and Travel as optional side trips along the way.">
+      <!-- Main flowing path: YOU → Routes → Map → Results -->
+      <path class="flow-main"
+            d="M 60 180 C 145 130, 225 105, 295 130 C 405 175, 510 215, 610 180 C 705 150, 780 145, 840 180"/>
+      <!-- Optional spurs hanging off the main path -->
+      <path class="flow-spur" d="M 355 153 Q 400 218, 450 280"/>
+      <path class="flow-spur" d="M 595 195 Q 645 240, 700 280"/>
+
+      <!-- Main stages -->
+      <g class="flow-stage" data-stage="you">
+        <circle class="flow-dot start" cx="60" cy="180" r="9"/>
+        <text class="flow-label" x="60" y="155">You</text>
+      </g>
+      <g class="flow-stage" data-stage="routes">
+        <circle class="flow-dot" cx="295" cy="130" r="9"/>
+        <text class="flow-label" x="295" y="105">Routes</text>
+        <text class="flow-sublabel" x="295" y="92">pick places</text>
+      </g>
+      <g class="flow-stage" data-stage="map">
+        <circle class="flow-dot" cx="610" cy="180" r="9"/>
+        <text class="flow-label" x="610" y="155">Map</text>
+        <text class="flow-sublabel" x="610" y="142">see your route</text>
+      </g>
+      <g class="flow-stage" data-stage="results">
+        <circle class="flow-dot end" cx="840" cy="180" r="12"/>
+        <text class="flow-label" x="840" y="155">Results</text>
+        <text class="flow-sublabel" x="840" y="142">the trip story</text>
+      </g>
+
+      <!-- Optional stages -->
+      <g class="flow-stage flow-optional" data-stage="places">
+        <circle class="flow-dot optional" cx="450" cy="280" r="8"/>
+        <text class="flow-label" x="450" y="305">Places</text>
+        <text class="flow-sublabel" x="450" y="320">optional &middot; in depth</text>
+      </g>
+      <g class="flow-stage flow-optional" data-stage="travel">
+        <circle class="flow-dot optional" cx="700" cy="280" r="8"/>
+        <text class="flow-label" x="700" y="305">Travel</text>
+        <text class="flow-sublabel" x="700" y="320">optional &middot; flights, visa</text>
+      </g>
+    </svg>
+
+    <a class="hbtn hbtn-fill flow-cta reveal" href="routes.html">Start planning &rarr;</a>
   </div>
 </section>
 
