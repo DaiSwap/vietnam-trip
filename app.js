@@ -764,6 +764,16 @@ let _onbData = {};
 let _pendingVote = null;
 let _lastOnbTrigger = null;
 let _wasInitialSetup = false;
+let _onbFailCount = 0;
+
+// After this many failed attempts on the budget/buffer steps, the error message
+// also tells the user the exact accepted range — so a stuck user always sees the
+// real numbers eventually instead of just repeated nudges.
+const RANGE_HINT_AFTER = 2;
+const RANGE_HINTS = {
+  budgetPP: " Accepted range: ₹40,000 to ₹2,00,000.",
+  bufferPP: " Accepted range: ₹5,000 to ₹39,999."
+};
 
 /**
  * Opens the onboarding takeover. Stores the trigger element so focus can be restored on close.
@@ -805,6 +815,7 @@ function closeOnboarding(viaClose){
 
 /** Renders the current onboarding step into the takeover card and re-triggers the slide-in animation. */
 function renderOnbStep(){
+  _onbFailCount = 0;
   const s = ONB_STEPS[_onbIdx], total = ONB_STEPS.length;
   const pct = ((_onbIdx + 1) / total) * 100;
   const bar = document.getElementById("onb-bar");
@@ -842,7 +853,12 @@ function onbNext(){
   const v = document.getElementById("onb-input").value;
   const result = s.validate(v);
   if(result !== true){
-    document.getElementById("onb-err").textContent = typeof result === "string" ? result : s.err;
+    _onbFailCount++;
+    let msg = typeof result === "string" ? result : s.err;
+    if(_onbFailCount > RANGE_HINT_AFTER && RANGE_HINTS[s.key]){
+      msg += RANGE_HINTS[s.key];
+    }
+    document.getElementById("onb-err").textContent = msg;
     return;
   }
   _onbData[s.key] = s.parse(v);
