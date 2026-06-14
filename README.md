@@ -1,4 +1,6 @@
-# Vietnam '26 — a group trip-planning site
+# mY'sTory — a group trip-planning site
+
+> Project name: **mY'sTory**. First trip planned with it: Vietnam.
 
 **Live:** [daiswap.github.io/vietnam-trip](https://daiswap.github.io/vietnam-trip/)
 

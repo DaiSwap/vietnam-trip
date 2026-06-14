@@ -535,7 +535,7 @@ function injectChrome(){
   const nav = document.createElement("div");
   nav.className="nav";
   nav.innerHTML = `
-    <a class="brand" href="index.html">Vietnam <span>'26</span></a>
+    <a class="brand" id="brandLink" href="index.html" aria-label="mY'sTory — back home or to your trip story">mY<span>'s</span>Tory</a>
     <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
     <div class="links" id="navlinks">
       ${link("index.html","Home","home")}
@@ -558,13 +558,42 @@ function injectChrome(){
   document.getElementById("whoBtn").addEventListener("click",()=>openOnboarding());
   refreshNav();
 
+  /* Brand routing: if the user has any Yes/Maybe picks, the brand takes them
+     to the trip-story block on Results; otherwise it heads back home. Lets
+     cmd/ctrl-click open in a new tab as normal. */
+  const brand = document.getElementById("brandLink");
+  if(brand){
+    brand.addEventListener("click", e => {
+      if(e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+      e.preventDefault();
+      const mv = myVotes();
+      const hasPicks = Object.values(mv).some(v => v === "yes" || v === "maybe");
+      const here = (location.pathname.split("/").pop() || "index.html").toLowerCase();
+      if(hasPicks){
+        if(here === "results.html"){
+          const el = document.getElementById("trip-story");
+          if(el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+          else window.location.href = "results.html#trip-story";
+        } else {
+          window.location.href = "results.html#trip-story";
+        }
+      } else {
+        if(here === "index.html" || here === ""){
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } else {
+          window.location.href = "index.html";
+        }
+      }
+    });
+  }
+
   /* onboarding takeover (multi-step story) */
   const ow = document.createElement("div");
   ow.className = "onb-wrap"; ow.id = "onbWrap";
   ow.innerHTML = `
     <div class="onb-card" role="dialog" aria-modal="true" aria-labelledby="onb-q">
       <button class="onb-close" id="onb-close" aria-label="Save and close" title="Save and close">×</button>
-      <div class="onb-brand">Vietnam <span>'26</span></div>
+      <div class="onb-brand">mY<span>'s</span>Tory</div>
       <div class="onb-progress"><div class="onb-bar" id="onb-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"></div></div>
       <div class="onb-stepbody" id="onb-stepbody">
         <div class="onb-step" id="onb-step"></div>
