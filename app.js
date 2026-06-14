@@ -73,7 +73,7 @@ const PLACES = [
     crowd:2, crowdNote:"Backroads stay remote", act:5, actNote:"Biggest adventure payoff",
     desc:"The best <b>quiet + adventure</b> return in the country. The famous loop gets busy on a few photo-stops, but the villages stay genuinely untouched.",
     doing:["Ride the loop (Ma Pi Leng pass)","Boat the Nho Que river gorge","Trek between hill-tribe villages","Homestays & local markets"],
-    when:"Big, physical, remote. With 5 of you, use easy-rider drivers or a private car if not everyone rides." },
+    when:"Big, physical, remote. With {n} of you, use easy-rider drivers or a private car if not everyone rides." },
   { id:"sapa", tier:3, lat:22.336, lng:103.844, region:"Far North · Hoang Lien Son", name:"Sapa",
     crowd:4, crowdNote:"Town has gone touristy", act:4, actNote:"Strong treks outside town",
     desc:"Was on the first plan. The town is commercial now, but the valley treks just outside still deliver terraced fields and quiet villages.",
@@ -458,6 +458,9 @@ function injectChrome(){
   sheet.innerHTML = `<div id="sheet-body"></div>`;
   document.body.appendChild(scrim); document.body.appendChild(sheet);
   scrim.addEventListener("click",closeSheet);
+
+  // Fill in `data-profile="…"` placeholders in static HTML with the user's profile.
+  hydrateProfileTokens();
   /* Escape: close whichever overlay is open. Never blindly call closeOnboarding,
      which could otherwise persist stale input from a non-open onboarding card. */
   document.addEventListener("keydown", e => {
@@ -644,6 +647,7 @@ function onbFinish(){
   closeOnboarding();
   refreshNav();
   renderHomeGreeting();
+  hydrateProfileTokens();      // re-fill any static data-profile placeholders
   applyVoteUI();
   if(_pendingVote){ const {placeId,vote}=_pendingVote; _pendingVote=null; doVote(placeId,vote); }
 }
@@ -694,7 +698,7 @@ function openSheet(id){
     </div>
     <p class="s-desc">${d.desc}</p>
     <div class="s-do"><h4>What you'd actually do</h4><ul>${d.doing.map(x=>`<li>${escapeHTML(x)}</li>`).join("")}</ul></div>
-    <div class="s-when">${escapeHTML(d.when)}</div>
+    <div class="s-when">${escapeHTML(applyProfileTokens(d.when))}</div>
     <div class="s-vlabel">Your vote</div>
     <div class="vote" data-id="${d.id}">${vbtn("yes")}${vbtn("maybe")}${vbtn("skip")}</div>`;
   document.getElementById("sheet-close").addEventListener("click", closeSheet);
@@ -819,20 +823,41 @@ function initPlaces(){
   applyVoteUI();
 }
 
-/* Crowd × Activity scatter (hand-rolled SVG) */
+/* Crowd × Activity scatter (hand-rolled SVG).
+   Places at the same (act, crowd) cell collide visually — we cluster nearby points
+   and stack their labels vertically so each is readable. */
 function buildChart(){
   const host=document.getElementById("chart"); if(!host) return;
   const W=720,H=460, pad=54;
   const x = a => pad + ( (a-1)/4 )*(W-pad*2);          // activity 1..5 → left..right
   const y = c => (H-pad) - ( (5-c)/4 )*(H-pad*2);       // quietness (5-crowd) 0..4 → bottom..top
-  let pts="";
-  PLACES.forEach(d=>{
-    const px=x(d.act), py=y(d.crowd);
-    const col = d.tier===1?"var(--yes)":d.tier===2?"var(--maybe)":"var(--skip)";
-    const labLeft = px > W-150;
+
+  // First pass: compute the dot position + colour for every place.
+  const items = PLACES.map(d => ({
+    d, px: x(d.act), py: y(d.crowd),
+    col: d.tier===1 ? "var(--yes)" : d.tier===2 ? "var(--maybe)" : "var(--skip)"
+  }));
+
+  // Cluster items whose dots overlap visually (within CLUSTER_R px in either axis).
+  // Within each cluster, distribute label Y around the cluster's mean so labels stack
+  // instead of writing on top of each other. The dot stays at its true position.
+  const CLUSTER_R = 32;
+  const groups = [];
+  items.forEach(it => {
+    const grp = groups.find(g => g.some(o => Math.abs(o.px - it.px) < CLUSTER_R && Math.abs(o.py - it.py) < CLUSTER_R));
+    if(grp) grp.push(it); else groups.push([it]);
+  });
+  groups.forEach(g => g.forEach((it, i) => { it.labDY = (i - (g.length - 1) / 2) * 16; }));
+
+  let pts = "";
+  items.forEach(it => {
+    const labLeft = it.px > W - 150;
+    const labX = labLeft ? it.px - 14 : it.px + 14;
+    const labY = it.py + 4 + it.labDY;
     pts += `<g class="pt-g">
-      <circle class="pt" cx="${px}" cy="${py}" r="8" fill="${col}" data-id="${d.id}"></circle>
-      <text class="ptlab" x="${labLeft?px-12:px+12}" y="${py+3.5}" text-anchor="${labLeft?'end':'start'}">${d.name}</text>
+      <circle class="pt" cx="${it.px}" cy="${it.py}" r="7" fill="${it.col}" data-id="${it.d.id}"></circle>
+      <line class="ptline" x1="${it.px}" y1="${it.py}" x2="${labLeft ? labX + 4 : labX - 4}" y2="${labY - 3}" stroke="rgba(0,0,0,0.12)" stroke-width="1"></line>
+      <text class="ptlab" x="${labX}" y="${labY}" text-anchor="${labLeft ? 'end' : 'start'}">${escapeHTML(it.d.name)}</text>
     </g>`;
   });
   host.innerHTML = `
@@ -1019,6 +1044,33 @@ function budgetFit(cost){
   return `<span class="rm-chip fit-bad">over by ${formatINR(cost-hard)}</span>`;
 }
 function formatINR(n){ return "₹" + Math.round(n).toLocaleString("en-IN"); }
+
+/**
+ * Substitutes `{n}` placeholders in PLACES / ROUTES strings with the user's actual group size.
+ * Falls back to "the group" if the profile isn't set yet.
+ */
+function applyProfileTokens(s){
+  if(typeof s !== "string" || !s.includes("{n}")) return s;
+  const n = Profile.get().groupSize;
+  return n ? s.replaceAll("{n}", String(n)) : s.replaceAll("{n}", "the group");
+}
+
+/**
+ * Walks the DOM and fills in any `<element data-profile="key">fallback</element>` placeholders
+ * using values from the user's Profile. Lets static HTML stay group-size / budget aware
+ * without templating at build time. Re-runnable safely.
+ */
+function hydrateProfileTokens(){
+  const p = Profile.get();
+  document.querySelectorAll("[data-profile]").forEach(el => {
+    const key = el.dataset.profile;
+    if(key === "groupSize" && Number.isFinite(p.groupSize)) el.textContent = `${p.groupSize} ${p.groupSize === 1 ? "of you" : "of you"}`;
+    else if(key === "groupSizeAdults" && Number.isFinite(p.groupSize)) el.textContent = `${p.groupSize} ${p.groupSize === 1 ? "adult" : "adults"}`;
+    else if(key === "name" && p.name) el.textContent = p.name;
+    else if(key === "budgetPP" && Number.isFinite(p.budgetPP)) el.textContent = formatINR(p.budgetPP);
+    else if(key === "budgetTotal" && Number.isFinite(p.budgetPP) && Number.isFinite(p.groupSize)) el.textContent = formatINR(p.budgetPP * p.groupSize);
+  });
+}
 
 /* Home greeting — reflects the captured profile */
 function renderHomeGreeting(){

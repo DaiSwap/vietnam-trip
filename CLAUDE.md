@@ -125,5 +125,9 @@ The web config (apiKey etc.) is **public-by-design and safe to commit**; securit
 
 ## Open questions (need Pranav)
 - **Real travel window (month/year).** April 2026 has passed. North & central Vietnam are best ~**Sep–Dec** and ~**Feb–Apr**; pick a window so when-to-go + budget are accurate.
-- **Group size** still 5 adults? Budget assumptions depend on it.
 - **Spam guard:** add a shared trip code to gate voting? Currently it's name-only + a public URL (fine for family, open to anyone with the link).
+
+## Group-aware content conventions
+The trip is now sized off whatever the user enters in onboarding (`Profile.groupSize`). Never bake a literal group size into copy. Two ways to keep content dynamic:
+- **In PLACES / ROUTES strings:** drop `{n}` where the number belongs, e.g. `"With {n} of you, use easy-rider drivers."` — render through `applyProfileTokens(d.when)` (already wired into `openSheet`).
+- **In static HTML (travel.html, etc.):** use `<span data-profile="groupSizeAdults">your group</span>`. The fallback text inside the span shows when no profile is set; `hydrateProfileTokens()` replaces it on every page load and after onboarding finishes. Supported keys: `name`, `groupSize`, `groupSizeAdults`, `budgetPP`, `budgetTotal`.
