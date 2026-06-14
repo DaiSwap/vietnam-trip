@@ -698,33 +698,65 @@ const ONB_STEPS = [
   { key:"name", q:"What's your name?",
     hint:"Your name stays anonymous — used only to set up your own account on this device. The group never sees who voted for what.",
     type:"text", placeholder:"e.g. Pranav", maxlength:24,
-    validate:v => typeof v==="string" && NAME_RX.test(v.trim()),
+    validate:v => {
+      const t = (v||"").trim();
+      if(t.length < 2) return "Real names use at least two letters — first name is fine.";
+      if(!NAME_RX.test(t)) return "Letters, spaces, . ' or - only.";
+      const letters = (t.match(/\p{L}/gu) || []).length;
+      if(letters < 2) return "Real names use at least two letters — first name is fine.";
+      return true;
+    },
     parse:v => v.trim(),
-    err:"Letters, digits, spaces, . ' or - only (1–24 chars)." },
+    err:"Letters, spaces, . ' or - only (2–24 chars)." },
   { key:"age", q:"How old are you?",
     hint:"Sizes up activity options (easy-rider vs self-drive on the Ha Giang loop, etc.).",
-    type:"number", placeholder:"e.g. 28", min:13, max:99,
-    validate:v => Number.isInteger(+v) && +v>=13 && +v<=99,
+    type:"number", placeholder:"e.g. 28", min:10, max:70,
+    validate:v => {
+      if(v === "" || !Number.isInteger(+v)) return "Type your age as a whole number.";
+      const n = +v;
+      if(n < 10) return "Trip planning is a grown-up thing. Ask a parent in your group to set this up.";
+      if(n > 100) return "Either you're the world's oldest traveler or a finger slipped. Try again.";
+      if(n > 70) return "Plenty of life left in you, but Vietnam has rough roads and steep hikes — let a younger planner enter their age and tag along with them.";
+      return true;
+    },
     parse:v => +v,
-    err:"Age between 13 and 99." },
+    err:"Type your age as a whole number." },
   { key:"groupSize", q:"How many people in your group?",
     hint:"Including you. Drives accommodation suggestions and cost-per-person totals.",
-    type:"number", placeholder:"e.g. 5", min:1, max:20,
-    validate:v => Number.isInteger(+v) && +v>=1 && +v<=20,
+    type:"number", placeholder:"e.g. 5", min:1, max:12,
+    validate:v => {
+      if(v === "" || !Number.isInteger(+v)) return "Type the group size as a whole number.";
+      const n = +v;
+      if(n < 1) return "Group size has to be at least 1.";
+      if(n > 12) return "13+ isn't a trip, it's a tour group. Split into smaller crews and plan separately.";
+      return true;
+    },
     parse:v => +v,
-    err:"Group size between 1 and 20." },
+    err:"Type a number between 1 and 12." },
   { key:"budgetPP", q:"Per-person budget (₹)?",
     hint:"Total spend per person — flights, hotels, food, activities. We match routes to it.",
-    type:"number", placeholder:"e.g. 60000", min:0, max:5000000,
-    validate:v => Number.isInteger(+v) && +v>0 && +v<=5000000,
+    type:"number", placeholder:"e.g. 60000", min:40000, max:200000,
+    validate:v => {
+      if(v === "" || !Number.isInteger(+v)) return "Type your budget as a whole rupee amount.";
+      const n = +v;
+      if(n < 40000) return "Flights alone are ₹20–30k from India, plus visa, plus food and stay. Less than ₹40,000 just isn't possible — bump it up.";
+      if(n > 200000) return "₹2L+ is more than Vietnam needs. Be honest with yourself — the trip will still be great.";
+      return true;
+    },
     parse:v => +v,
-    err:"A whole rupee amount, more than 0." },
+    err:"Type your budget as a whole rupee amount." },
   { key:"bufferPP", q:"Buffer per person (₹)?",
     hint:"Wiggle room each person has on top of the budget. Used for upgrades or emergencies.",
-    type:"number", placeholder:"e.g. 15000", min:0, max:5000000,
-    validate:v => Number.isInteger(+v) && +v>=0 && +v<=5000000,
+    type:"number", placeholder:"e.g. 8000", min:5000, max:39999,
+    validate:v => {
+      if(v === "" || !Number.isInteger(+v)) return "Type a whole rupee amount.";
+      const n = +v;
+      if(n < 5000) return "Even small surprises cost money — a missed train, a sudden plan change. ₹5,000 minimum keeps the trip safe.";
+      if(n >= 40000) return "₹40k+ isn't a buffer, it's a second budget. Just add the extra to your main budget.";
+      return true;
+    },
     parse:v => +v,
-    err:"A whole rupee amount, 0 or more." }
+    err:"Type a whole rupee amount." }
 ];
 
 let _onbIdx = 0;
@@ -757,7 +789,7 @@ function closeOnboarding(viaClose){
   if(viaClose && Profile.isComplete()){
     const s = ONB_STEPS[_onbIdx];
     const v = document.getElementById("onb-input").value;
-    if(s.validate(v)) _onbData[s.key] = s.parse(v);
+    if(s.validate(v) === true) _onbData[s.key] = s.parse(v);
     if(Object.keys(_onbData).length >= ONB_STEPS.length){
       Profile.set(_onbData);
       TripVotes.setName(_onbData.name);
@@ -806,7 +838,11 @@ function renderOnbStep(){
 function onbNext(){
   const s = ONB_STEPS[_onbIdx];
   const v = document.getElementById("onb-input").value;
-  if(!s.validate(v)){ document.getElementById("onb-err").textContent = s.err; return; }
+  const result = s.validate(v);
+  if(result !== true){
+    document.getElementById("onb-err").textContent = typeof result === "string" ? result : s.err;
+    return;
+  }
   _onbData[s.key] = s.parse(v);
   if(_onbIdx < ONB_STEPS.length - 1){ _onbIdx++; renderOnbStep(); }
   else { onbFinish(); }
@@ -817,7 +853,7 @@ function onbBack(){
   if(_onbIdx<=0) return;
   const s = ONB_STEPS[_onbIdx];
   const v = document.getElementById("onb-input").value;
-  if(s.validate(v)) _onbData[s.key] = s.parse(v);
+  if(s.validate(v) === true) _onbData[s.key] = s.parse(v);
   _onbIdx--; renderOnbStep();
 }
 function onbFinish(){
