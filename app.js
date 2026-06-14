@@ -1357,9 +1357,9 @@ function initRoutes(){
     const fit = budgetFit(cost);
     const stopsHtml = r.stops.map((s,i)=>{
       const p = byId(s.id); if(!p) return "";
-      return `<button type="button" class="stop" data-id="${s.id}" aria-pressed="false" aria-label="Toggle ${escapeHTML(p.name)} in your picks"><div class="stop-n">${i+1}</div>
+      return `<div class="stop"><div class="stop-n">${i+1}</div>
         <div class="stop-body"><div class="stop-name">${escapeHTML(p.name)}</div>
-          <div class="stop-meta">${escapeHTML(p.region)} · ${s.nights} night${s.nights>1?'s':''}</div></div></button>`;
+          <div class="stop-meta">${escapeHTML(p.region)} · ${s.nights} night${s.nights>1?'s':''}</div></div></div>`;
     }).join("");
     const totalGroup = Profile.isComplete() ? `<span class="rm-chip">${formatINR(cost*Profile.get().groupSize)} for ${Profile.get().groupSize}</span>` : "";
     meta.innerHTML = `
@@ -1376,7 +1376,6 @@ function initRoutes(){
       <p class="rm-note">${r.note}</p>
       <div class="stop-list">${stopsHtml}</div>
       <p class="rm-disclaimer">Estimate is a rough sum of flights (~₹25k), e-visa (~₹2.1k), in-country (~₹3k/day) and inter-stop transfers (~₹1.5k each). Hotels & activities vary; treat as a baseline.</p>`;
-    applyRoutePicksUI();
   }
 
   picker.querySelectorAll(".route-pick").forEach(btn=>{
@@ -1392,15 +1391,15 @@ function initRoutes(){
   // Route-picks wiring: delegated click on the activity matrix and the route-meta
   // (which re-renders when the user picks a different curated route). Listener
   // syncs every visible pill / stop with the stored selection.
+  // Route-picks wiring: only the activity matrix is interactive. Curated route
+  // stops are display-only (they show what each pre-made path looks like).
   const togglePickFromEvent = (e) => {
-    const t = e.target.closest("[data-id]");
-    if(!t || !t.matches(".pill-tag, .stop")) return;
+    const t = e.target.closest(".pill-tag[data-id]");
+    if(!t) return;
     RoutePicks.toggle(t.dataset.id);
   };
   const matrixEl = document.querySelector(".matrix");
   if(matrixEl) matrixEl.addEventListener("click", togglePickFromEvent);
-  const metaEl = document.getElementById("routeMeta");
-  if(metaEl) metaEl.addEventListener("click", togglePickFromEvent);
   RoutePicks.onChange(applyRoutePicksUI);
   applyRoutePicksUI();
 
