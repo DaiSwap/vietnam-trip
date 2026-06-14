@@ -552,14 +552,13 @@ function injectChrome(){
     <div class="links" id="navlinks">
       ${link("index.html","Home","home")}
       ${link("routes.html","Routes","routes")}
-      ${link("travel.html","Travel","travel")}
       ${link("places.html","Places","places")}
+      ${link("travel.html","Travel","travel")}
       ${link("map.html","Map","map")}
       ${link("results.html","Results","results")}
     </div>
     <div class="spacer"></div>
     <div class="me">
-      <span class="tally" aria-label="Your votes" aria-live="polite" aria-atomic="true"><span class="ty">✓ <b id="t-yes">0</b></span><span class="tm">~ <b id="t-maybe">0</b></span><span class="ts">✕ <b id="t-skip">0</b></span></span>
       <button class="who" id="whoBtn" aria-label="Edit your profile"></button>
     </div>`;
   document.body.prepend(nav);
@@ -909,10 +908,6 @@ function closeSheet(){
    ============================================================ */
 function applyVoteUI(){
   const mv = myVotes();
-  // nav tally
-  let y=0,m=0,s=0; Object.values(mv).forEach(v=>{ if(v==="yes")y++; else if(v==="maybe")m++; else if(v==="skip")s++; });
-  const setT=(id,n)=>{ const el=document.getElementById(id); if(el) el.textContent=n; };
-  setT("t-yes",y); setT("t-maybe",m); setT("t-skip",s);
   // markers
   if(window._markers){
     Object.entries(window._markers).forEach(([id,mk])=>{

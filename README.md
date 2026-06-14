@@ -41,8 +41,8 @@ The nav reflects the order people should move through it:
 |---|---|---|
 | 1 | **Home** | What is this? |
 | 2 | **Routes** | What could the trip look like? (activities-by-city, 3 curated routes on a map, when to go) |
-| 3 | **Travel** | How do I get there and around? (flights from India, visa, in-country transit) |
-| 4 | **Places** | Which of these are right for us? (compare, suggest a missing place, vote) |
+| 3 | **Places** | Which of these are right for us? (compare, suggest a missing place, vote) |
+| 4 | **Travel** | How do I get there and around? (flights from India, visa, in-country transit) |
 | 5 | **Map** | Where are they, and where do my picks connect? |
 | 6 | **Results** | What did the group decide? *(the closing story, coming soon)* |
 
