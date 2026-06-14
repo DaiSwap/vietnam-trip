@@ -147,16 +147,10 @@ body.reveal-fallback .reveal:not(.in){opacity:1;transform:none;transition:opacit
   to{opacity:1;transform:none}
 }
 
-/* scroll cue */
-.scrollcue{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3);display:flex;flex-direction:column;align-items:center;gap:10px;z-index:1}
-.scrollcue .chev{width:14px;height:14px;border-right:2px solid var(--ink-3);border-bottom:2px solid var(--ink-3);transform:rotate(45deg);animation:bob 1.8s ease-in-out infinite}
-@keyframes bob{0%,100%{transform:rotate(45deg) translate(0,0)}50%{transform:rotate(45deg) translate(3px,3px)}}
-
 @media(max-width:760px){
   .hero{padding:60px 22px 80px;min-height:auto}
   .hero-cta{flex-direction:column;align-items:stretch;width:100%;max-width:340px;margin-left:auto;margin-right:auto}
   .hbtn{justify-content:center}
-  .scrollcue{display:none}
 }
 @media(max-width:420px){
   .hero-title{font-size:clamp(40px,12vw,60px)}
@@ -785,7 +779,6 @@ body.reveal-fallback .reveal:not(.in){opacity:1;transform:none;transition:opacit
 
 @media (prefers-reduced-motion:reduce){
   .reveal{opacity:1;transform:none;transition:none}
-  .scrollcue .chev{animation:none}
   .leaflet-marker-icon.active .mk-dot,.res-meta .dot-live{animation:none}
   .eyebrow,.hero-title,.hero-lede,.hero-cta{opacity:1;transform:none;animation:none}
   .mk,.onb-stepbody.in,.wcell.in{animation:none}
