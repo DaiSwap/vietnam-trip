@@ -579,31 +579,61 @@ body.reveal-fallback .reveal:not(.in){opacity:1;transform:none;transition:opacit
 .greet .g-edit{margin-top:10px;background:transparent;border:1px solid rgba(194,98,47,0.4);color:var(--accent);font-family:inherit;font-weight:600;font-size:13px;padding:6px 14px;border-radius:100px;cursor:pointer}
 .greet .g-edit:hover{background:rgba(194,98,47,0.08)}
 
-/* ---------- routes page ---------- */
-.route-picker{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
-.route-pick{flex:1 1 200px;background:var(--bg);border:1px solid var(--hair);border-radius:14px;padding:14px 16px;cursor:pointer;text-align:left;transition:.18s;font-family:inherit}
-.route-pick:hover{border-color:rgba(0,0,0,0.18);box-shadow:0 2px 12px rgba(0,0,0,0.05)}
-.route-pick.on{border-color:var(--accent);background:rgba(194,98,47,0.06)}
-.rp-name{font-weight:600;font-size:15px;color:var(--ink)}
-.rp-meta{font-size:12.5px;color:var(--ink-2);margin-top:2px}
-.rp-cost{font-size:13px;color:var(--accent);font-weight:600;margin-top:6px}
-.route-frame{position:relative;border-radius:var(--radius);overflow:hidden;border:1px solid var(--hair);height:520px;margin-bottom:24px;background:var(--bg-2)}
-#routeMap{position:absolute;inset:0}
-.route-meta{padding:6px 0 0}
-.rm-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:10px}
-.rm-head h3{font-size:24px;font-weight:700;letter-spacing:-.02em}
-.rm-chips{display:flex;flex-wrap:wrap;gap:6px}
-.rm-chip{display:inline-block;font-size:12.5px;font-weight:600;padding:4px 11px;border-radius:100px;background:var(--bg-2);color:var(--ink-2)}
+/* ---------- routes page · curated routes ---------- */
+/* Compact tabs replace the old 3-card picker. */
+.route-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;justify-content:center}
+.route-tab{
+  background:var(--bg);border:1px solid var(--hair);
+  font-family:inherit;font-weight:600;font-size:14px;
+  padding:10px 18px;border-radius:100px;cursor:pointer;
+  color:var(--ink-2);transition:.18s;min-height:44px;
+}
+.route-tab:hover{border-color:var(--ink);color:var(--ink)}
+.route-tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.route-tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Summary line sits above the map. */
+.rm-summary{text-align:center;margin-bottom:14px}
+.rm-summary h3{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+.rm-line{font-size:14.5px;color:var(--ink-2);line-height:1.5}
+.rm-line b{color:var(--ink);font-weight:600}
+.rm-chip{display:inline-block;font-size:12.5px;font-weight:600;padding:4px 11px;border-radius:100px;background:var(--bg-2);color:var(--ink-2);margin-left:6px;vertical-align:middle}
 .rm-chip.fit-good{background:rgba(31,157,87,0.12);color:var(--yes)}
 .rm-chip.fit-warn{background:rgba(207,138,0,0.14);color:var(--maybe)}
 .rm-chip.fit-bad{background:rgba(194,80,58,0.14);color:var(--skip)}
-.rm-note{color:var(--ink-2);font-size:15px;margin-bottom:16px;line-height:1.5}
-.stop-list{display:flex;flex-wrap:wrap;gap:10px}
-.stop{display:flex;gap:11px;align-items:center;padding:10px 14px;background:var(--bg-2);border-radius:12px;flex:1 1 230px}
-.stop-n{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
-.stop-name{font-weight:600;font-size:14px}
-.stop-meta{font-size:12px;color:var(--ink-2);margin-top:1px}
-.rm-disclaimer{margin-top:18px;font-size:12.5px;color:var(--ink-3);line-height:1.5;font-style:italic}
+.rm-note{color:var(--ink-2);font-size:14px;line-height:1.5;margin-top:8px}
+
+.route-frame{position:relative;border-radius:var(--radius);overflow:hidden;border:1px solid var(--hair);height:520px;margin-bottom:18px;background:var(--bg-2)}
+#routeMap{position:absolute;inset:0}
+.route-meta{padding:6px 0 0}
+
+/* Horizontal city flow below the map. */
+.rm-flow{
+  display:flex;flex-wrap:wrap;gap:0 6px;
+  justify-content:center;align-items:center;
+  margin-top:6px;
+}
+.rm-pill{
+  display:inline-flex;flex-direction:column;align-items:center;
+  background:var(--bg-2);border-radius:14px;
+  padding:9px 14px;margin:4px 0;
+  min-width:90px;
+}
+.rm-pill-name{font-size:14px;font-weight:600;color:var(--ink);text-align:center;line-height:1.2}
+.rm-nights{font-size:11px;color:var(--ink-3);font-weight:500;margin-top:2px}
+.rm-arrow{
+  font-size:11px;color:var(--ink-3);font-weight:500;
+  letter-spacing:.04em;padding:0 4px;white-space:nowrap;
+}
+.rm-disclaimer{margin-top:18px;font-size:12.5px;color:var(--ink-3);line-height:1.5;font-style:italic;text-align:center}
+
+@media(max-width:600px){
+  .rm-flow{flex-direction:column;gap:2px}
+  .rm-pill{flex-direction:row;gap:8px;align-items:baseline;min-width:200px;padding:8px 14px}
+  .rm-pill-name{text-align:left}
+  .rm-arrow{padding:2px 0}
+  .rm-summary h3{font-size:20px}
+}
 
 /* route map markers — same hide-by-default pattern as the main map's .mk-name */
 .rmk{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.96);padding:3px 8px 3px 4px;border-radius:100px;box-shadow:0 1px 5px rgba(0,0,0,0.18);white-space:nowrap;font-size:12px;font-weight:600;transform:translate(8px,-8px)}
@@ -631,8 +661,6 @@ body.reveal-fallback .reveal:not(.in){opacity:1;transform:none;transition:opacit
 
 @media(max-width:720px){
   .route-frame{height:420px}
-  .rm-head h3{font-size:20px}
-  .stop{flex:1 1 100%}
 }
 @media(max-width:480px){
   .onb-card{padding:28px 20px 22px;border-radius:20px}
