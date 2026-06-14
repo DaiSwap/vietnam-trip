@@ -162,6 +162,8 @@ the `firebaseConfig` placeholders aren't filled in.
 
 ```
 .
+├── README.md              you are here
+├── LICENSE                MIT
 ├── index.html             Home (hero + Plan-the-trip CTA only)
 ├── routes.html            Routes — the primary picker (activity matrix,
 │                          three curated routes, climate)
@@ -174,15 +176,18 @@ the `firebaseConfig` placeholders aren't filled in.
 ├── app.js                 Shared — PLACES data, TripVotes, RoutePicks,
 │                          effectiveVote resolver, voting, suggestions,
 │                          onboarding, page inits
-└── docs/
-    ├── README.md          Top-level docs index
-    ├── feedback-log.md    Every user suggestion with status
-    ├── next-steps/        Detailed plans for each queued PR
-    ├── session-logs/      Dated snapshots of the codebase state
-    └── day-by-day-builder/ 10-specialist review of the original
-                           day-by-day proposal (historical, kept for
-                           the reasoning trail)
+└── docs/                  see docs/README.md for the full index
+    ├── README.md
+    ├── feedback-log.md    every user suggestion with status
+    ├── next-steps/        plans for the next features
+    ├── session-logs/      dated snapshots of the codebase state
+    └── day-by-day-builder/ historical 10-reviewer critique
 ```
+
+For anyone picking this up cold: start with
+[`docs/session-logs/`](./docs/session-logs/) (newest first), then
+[`docs/feedback-log.md`](./docs/feedback-log.md), then pick the
+top item from [`docs/next-steps/README.md`](./docs/next-steps/README.md).
 
 ---
 
