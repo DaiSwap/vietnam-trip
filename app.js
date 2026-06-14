@@ -1059,7 +1059,7 @@ function renderMyRoute(map){
     const maybeN = picked.length - yesN;
     info.hidden = false;
     info.innerHTML = `
-      <span class="ri-main"><b>${picked.length} stops</b> &middot; <b>${Math.round(totalKm)} km</b> total <span class="ri-dim">(straight-line)</span></span>
+      <span class="ri-main"><b>${picked.length} places</b> &middot; <b>${Math.round(totalKm)} km</b> total <span class="ri-dim">(straight-line)</span></span>
       <span class="ri-sub">${yesN} yes &middot; ${maybeN} maybe &middot; ordered north → south</span>`;
   }
 }
@@ -1601,7 +1601,7 @@ function renderTripStory(){
     <h3 class="story-headline">${mode === "mine" ? "Your picks so far." : "Most selected so far."}</h3>
     <p class="story-paragraph">${composeStoryParagraph(stops, mode)}</p>
     <div class="story-strip" aria-label="Stops and distances">${renderStoryStrip(stops)}</div>
-    <p class="story-note">A rough first draft &mdash; verify before booking anything.</p>`;
+    <p class="story-note">A rough first draft &mdash; verify before booking.</p>`;
   bindStoryToggle(host);
 }
 
