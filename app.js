@@ -656,7 +656,7 @@ function refreshNav(){
    ============================================================ */
 const ONB_STEPS = [
   { key:"name", q:"What's your name?",
-    hint:"First name is fine — your group sees this next to your votes.",
+    hint:"Your name stays anonymous — used only to set up your own account on this device. The group never sees who voted for what.",
     type:"text", placeholder:"e.g. Pranav", maxlength:24,
     validate:v => typeof v==="string" && NAME_RX.test(v.trim()),
     parse:v => v.trim(),
@@ -1491,9 +1491,6 @@ function renderResults(){
   const maxPossible = numVoters * 2;
 
   host.innerHTML = `
-    <p class="res-legend">${numVoters === 1
-      ? `Bars show each place's score. Yes counts double; Maybe counts single.`
-      : `Bars show each place's score out of ${maxPossible} possible (${numVoters} voters × 2 pts max for a Yes).`}</p>
     <div class="res-chart" role="list">
       ${rows.map((r, i) => {
         const yesPct = (r.yes.length * 2 / maxPossible) * 100;
