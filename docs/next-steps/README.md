@@ -8,39 +8,39 @@ open file.
 
 ## Currently queued
 
-| # | Plan | One-line summary | Status |
+Three PRs to finish the UX restructure that shipped in PRs #18–#21
+(see the 2026-06-15 session log for the picture so far).
+
+| # | Branch label | One-line summary | Plan written? |
 |---|---|---|---|
-| 01 | [day-by-day-dates.md](./01-day-by-day-dates.md) | Optional 6th onboarding step (start date). Trip story reads *"You'll arrive in Hanoi on Saturday, 14 August…"* when set; current "12 days…" copy when skipped. | **Plan ready, not started** |
+| **B** | `feature/home-flow-diagram` | Replace the bare Home page with a calligraphic flowing-curve SVG illustration of the trip journey. Single Plan-the-trip CTA below. Option A from the UX brainstorm. | Not yet — write when starting |
+| **C** | `feature/curated-routes-redesign` | Replace 3-cards-above-map with tabs + summary line + map + horizontal flow of city pills below. The map itself stays. | Not yet |
+| **D** | `feature/route-picks-firestore-sync` | Sync `RoutePicks` to Firestore so the group view ("What most picked") includes other users' Routes selections. Currently localStorage only. Needs Firestore rules update. | Not yet |
 
 ## Held back for later
 
-These were discussed but consciously not queued. Each has a one-liner
-on why, so the rationale isn't lost.
-
-| Idea | Why it's not queued |
+| Idea | Why parked |
 |---|---|
-| "X days to departure" countdown badge | Adds visual noise. Only useful once `startDate` ships; revisit then. |
-| Dates rendered on the map markers | Map is for spatial sense, not schedule. Don't conflate the two views. |
-| Shared **group** start-date (one date all members see) | Requires Firestore write + new rules + sync logic. Per-user date is enough for v1. |
-| Per-stop date editing on the strip | The strip is a story summary, not an editor. Editing belongs in a future "day-by-day" full builder if we ever revisit v0. |
-| Photos & food gallery | Tile says "Soon" on the home page. Worth a separate plan when ready. |
-| Live flight prices (vs. ranges today) | Needs an external API + cost analysis. Not a code-only task. |
+| **01 — Day-by-day calendar dates** ([`01-day-by-day-dates.md`](./01-day-by-day-dates.md)) | Plan was ready before the restructure. Paused until B/C/D ship. |
+| Photos & food gallery | Was a "Soon" tile, removed from Home/Results. Revisit when there's time + content. |
+| "X days to departure" countdown badge | Only useful after date feature ships. |
+| Per-user displayed names on Results | Explicit user rule: anonymity is non-negotiable. |
 
 ## How to pick this up
 
-1. Read the numbered plan top-to-bottom.
+1. Read the next numbered plan top-to-bottom (or write one if it's a
+   queued PR with no plan yet — match the shape of `01-day-by-day-dates.md`).
 2. Create a branch following the naming convention from past PRs
    (`feature/<short-slug>` or `tweak/<short-slug>`).
 3. Apply the changes in the order the plan suggests.
 4. Smoke test (the plan lists the cases).
-5. Open a PR using the project's PR-body shape (see any merged PR
-   for an example — usually `## Summary`, change list, `## Test plan`).
+5. Open a PR using the project's PR-body shape (`## Summary` + change
+   list + `## Test plan` checklist).
 6. Squash-merge, delete the branch, sync local `main`, mark the plan
-   here as **Shipped** and update [`../session-logs/`](../session-logs/)
-   with a new dated entry that captures what landed.
+   here as **Shipped** and add a dated entry under
+   [`../session-logs/`](../session-logs/).
 
 ## House rule
 
-Never ship a feature that isn't in this folder first. If the user
-asks for something new, write a short plan here, get an "OK", then
-implement.
+Never ship a feature that isn't in this folder first. Plans live here;
+session logs capture what landed.

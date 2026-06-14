@@ -87,6 +87,7 @@ body.reveal-fallback .reveal:not(.in){opacity:1;transform:none;transition:opacit
 /* ---------- generic section heads ---------- */
 .section{padding:84px 0 20px}
 .section .tag{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:14px}
+.section .tag.optional{color:var(--maybe)}
 .section h2{font-size:clamp(30px,5.2vw,52px);font-weight:700;letter-spacing:-.025em;line-height:1.05}
 .section .sub{max-width:620px;margin:16px auto 0;color:var(--ink-2);font-size:clamp(16px,2.2vw,19px)}
 .section.center{text-align:center}
