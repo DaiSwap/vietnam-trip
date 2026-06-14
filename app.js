@@ -1390,20 +1390,16 @@ function animateCount(el, target, duration = 800){
 /** Home-page enhancement. Hero is now fully CSS-only — nothing for JS to wire. */
 function initHero(){ /* intentionally empty; reserved for future home-page hooks */ }
 
-/* Routes page — picker + Leaflet polyline + when-to-go strip */
+/* Routes page — curated route tabs + Leaflet polyline + when-to-go strip */
 function initRoutes(){
   if(typeof L === "undefined") return;
-  const picker = document.getElementById("routePicker");
-  if(!picker) return;
+  const tabs = document.getElementById("routeTabs");
+  if(!tabs) return;
 
-  picker.innerHTML = ROUTES.map((r,i)=>{
-    const est = estimateRouteCost(r);
-    return `<button class="route-pick ${i===0?'on':''}" data-r="${r.id}">
-      <div class="rp-name">${r.name}</div>
-      <div class="rp-meta">${r.days} days · ${r.stops.length} stops</div>
-      <div class="rp-cost">${formatINR(est)}/person</div>
-    </button>`;
-  }).join("");
+  // Compact tabs replace the old 3-card picker — names only, summary moves below.
+  tabs.innerHTML = ROUTES.map((r,i)=>
+    `<button class="route-tab ${i===0?'on':''}" data-r="${r.id}" role="tab" aria-selected="${i===0}">${escapeHTML(r.name)}</button>`
+  ).join("");
 
   const map = L.map("routeMap",{ zoomControl:false, scrollWheelZoom:false, minZoom:5, maxZoom:13 });
   L.control.zoom({position:"topright"}).addTo(map);
@@ -1442,36 +1438,51 @@ function initRoutes(){
     renderRouteMeta(r);
   }
   function renderRouteMeta(r){
-    const meta = document.getElementById("routeMeta"); if(!meta) return;
+    const summary = document.getElementById("routeSummary");
+    const meta = document.getElementById("routeMeta");
+    if(!meta) return;
     const cost = estimateRouteCost(r);
     const fit = budgetFit(cost);
-    const stopsHtml = r.stops.map((s,i)=>{
-      const p = byId(s.id); if(!p) return "";
-      return `<div class="stop"><div class="stop-n">${i+1}</div>
-        <div class="stop-body"><div class="stop-name">${escapeHTML(p.name)}</div>
-          <div class="stop-meta">${escapeHTML(p.region)} · ${s.nights} night${s.nights>1?'s':''}</div></div></div>`;
-    }).join("");
-    const totalGroup = Profile.isComplete() ? `<span class="rm-chip">${formatINR(cost*Profile.get().groupSize)} for ${Profile.get().groupSize}</span>` : "";
+    const totalGroup = Profile.isComplete() ? ` &middot; <b>${formatINR(cost*Profile.get().groupSize)}</b> for ${Profile.get().groupSize}` : "";
+
+    // Summary line sits ABOVE the map — quick read of "what is this route".
+    if(summary){
+      summary.innerHTML = `
+        <h3>${escapeHTML(r.name)}</h3>
+        <div class="rm-line"><b>${r.days} days</b> &middot; <b>${r.stops.length} places</b> &middot; <b>${formatINR(cost)}/person</b>${totalGroup} ${fit}</div>
+        <p class="rm-note">${escapeHTML(r.note)}</p>`;
+    }
+
+    // Horizontal city flow sits BELOW the map — replaces the old stop-card strip.
+    // Each pill = place + nights; arrows between show km between consecutive places.
+    const flowParts = [];
+    r.stops.forEach((s, i) => {
+      const p = byId(s.id); if(!p) return;
+      flowParts.push(
+        `<span class="rm-pill"><span class="rm-pill-name">${escapeHTML(p.name)}</span><span class="rm-nights">${s.nights} ${s.nights === 1 ? "night" : "nights"}</span></span>`
+      );
+      if(i < r.stops.length - 1){
+        const next = byId(r.stops[i+1].id);
+        if(next){
+          const km = Math.round(haversineKm(p.lat, p.lng, next.lat, next.lng));
+          flowParts.push(`<span class="rm-arrow">${km} km</span>`);
+        }
+      }
+    });
+
     meta.innerHTML = `
-      <div class="rm-head">
-        <h3>${r.name}</h3>
-        <div class="rm-chips">
-          <span class="rm-chip">${r.days} days</span>
-          <span class="rm-chip">${r.stops.length} stops</span>
-          <span class="rm-chip">${formatINR(cost)}/person</span>
-          ${totalGroup}
-          ${fit}
-        </div>
-      </div>
-      <p class="rm-note">${r.note}</p>
-      <div class="stop-list">${stopsHtml}</div>
-      <p class="rm-disclaimer">Estimate is a rough sum of flights (~₹25k), e-visa (~₹2.1k), in-country (~₹3k/day) and inter-stop transfers (~₹1.5k each). Hotels & activities vary; treat as a baseline.</p>`;
+      <div class="rm-flow">${flowParts.join("")}</div>
+      <p class="rm-disclaimer">Estimate is a rough sum of flights (~₹25k), e-visa (~₹2.1k), in-country (~₹3k/day) and inter-stop transfers (~₹1.5k each). Hotels &amp; activities vary; treat as a baseline.</p>`;
   }
 
-  picker.querySelectorAll(".route-pick").forEach(btn=>{
+  tabs.querySelectorAll(".route-tab").forEach(btn=>{
     btn.addEventListener("click",()=>{
-      picker.querySelectorAll(".route-pick").forEach(b=>b.classList.remove("on"));
+      tabs.querySelectorAll(".route-tab").forEach(b=>{
+        b.classList.remove("on");
+        b.setAttribute("aria-selected", "false");
+      });
       btn.classList.add("on");
+      btn.setAttribute("aria-selected", "true");
       showRoute(btn.dataset.r);
     });
   });
