@@ -35,6 +35,22 @@
   </div>
 </section>
 
+<section class="section" style="padding-top:30px">
+  <div class="wrap">
+    <div class="suggest-card reveal">
+      <h3>Got a place we missed?</h3>
+      <p>Suggest somewhere not on our list &mdash; Da Lat, Phu Quoc, anywhere. The group sees the suggestions, but <b>not who suggested what</b>.</p>
+      <form class="suggest-form" id="suggestForm" autocomplete="off">
+        <label for="suggestInput" class="visually-hidden">Place name</label>
+        <input id="suggestInput" type="text" placeholder="e.g. Da Lat, Mui Ne, Mekong Delta" maxlength="40" />
+        <button type="submit" class="hbtn hbtn-fill">Suggest</button>
+      </form>
+      <div id="suggestStatus" class="suggest-status" aria-live="polite"></div>
+      <div id="suggestList" class="suggest-list" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
 <div class="foot">
   Tap any card's vote buttons, or open details. See everyone's combined picks on the <a href="results.html" style="color:var(--accent);font-weight:600">results page</a>.
 </div>

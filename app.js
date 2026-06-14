@@ -362,6 +362,134 @@ const TripVotes = {
 };
 
 /* ============================================================
+   PLACE SUGGESTIONS — anonymous user-submitted places not in the
+   curated PLACES list. Stored in Firestore (`suggestions` collection)
+   when configured; localStorage fallback otherwise. The UI only ever
+   shows aggregated counts — individual suggester names are never
+   displayed.
+   ============================================================ */
+const Suggestions = {
+  collection: "suggestions",
+  /** True if `s` is a valid place-name string (1–40 chars, trimmed). */
+  validate(s){ return typeof s === "string" && s.trim().length >= 1 && s.trim().length <= 40; },
+  /** Normalises a name into a lowercase a-z0-9- slug (used for dedup). */
+  _slug(s){
+    return String(s).toLowerCase().trim()
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+      .slice(0, 32);
+  },
+  /** Persists a suggestion for the current user. Requires a complete Profile upstream. */
+  async add(rawName){
+    const user = Profile.get().name;
+    if(!user){ Log.warn("Suggestions.add", "no profile"); return; }
+    if(!this.validate(rawName)){ Log.warn("Suggestions.add", "invalid name"); return; }
+    const name = rawName.trim();
+    const slug = this._slug(name);
+    if(!slug){ Log.warn("Suggestions.add", "empty slug"); return; }
+    const userLower = user.toLowerCase();
+    const payload = { name, slug, byNameLower: userLower, ts: Date.now() };
+    if(_db){
+      try { await _db.collection(this.collection).doc(`${userLower}__${slug}`).set(payload); }
+      catch (e) { Log.error("Suggestions.add", "Firestore write failed", e); }
+    } else {
+      const arr = this._getLocal().filter(s => !(s.byNameLower === userLower && s.slug === slug));
+      arr.push(payload);
+      this._setLocal(arr);
+      this._emitLocal();
+    }
+  },
+  _lk: "trip_suggestions_local",
+  _getLocal(){
+    try { const a = JSON.parse(localStorage.getItem(this._lk)); return Array.isArray(a) ? a : []; }
+    catch (e) { Log.warn("Suggestions._getLocal", "parse failed; resetting", e); return []; }
+  },
+  _setLocal(arr){
+    try { localStorage.setItem(this._lk, JSON.stringify(arr)); }
+    catch (e) { Log.error("Suggestions._setLocal", "write failed", e); }
+  },
+  /** Subscribes to live suggestions; calls cb with an array of sanitised entries. */
+  subscribe(cb){
+    this._cb = cb;
+    if(_db){
+      return _db.collection(this.collection).onSnapshot(snap => {
+        const arr = [];
+        snap.forEach(d => { const s = this._sanitise(d.data()); if(s) arr.push(s); });
+        cb(arr);
+      }, err => Log.error("Suggestions.subscribe", "listener err", err));
+    } else {
+      this._emitLocal();
+      window.addEventListener("storage", e => { if(e.key === this._lk) this._emitLocal(); });
+      return () => {};
+    }
+  },
+  _emitLocal(){
+    if(!this._cb) return;
+    this._cb(this._getLocal().map(s => this._sanitise(s)).filter(Boolean));
+  },
+  /** Discards anything that doesn't match the expected shape. */
+  _sanitise(d){
+    if(!d || typeof d !== "object") return null;
+    const name = typeof d.name === "string" ? d.name.trim().slice(0, 40) : null;
+    const slug = typeof d.slug === "string" ? d.slug.slice(0, 32) : null;
+    const byNameLower = typeof d.byNameLower === "string" ? d.byNameLower.slice(0, 24) : null;
+    if(!name || !slug || !byNameLower) return null;
+    if(!/^[a-z0-9-]+$/.test(slug)) return null;
+    return { name, slug, byNameLower };
+  }
+};
+
+/** Groups raw suggestions by slug; returns [{name, count}] sorted by suggester count desc. */
+function aggregateSuggestions(arr){
+  const groups = new Map();
+  arr.forEach(s => {
+    if(!groups.has(s.slug)) groups.set(s.slug, { name: s.name, suggesters: new Set() });
+    groups.get(s.slug).suggesters.add(s.byNameLower);
+  });
+  return [...groups.values()]
+    .map(g => ({ name: g.name, count: g.suggesters.size }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+/** Wires the Suggestions form on places.html. Submits to Firestore + renders the aggregated list. */
+function initSuggestions(){
+  const form = document.getElementById("suggestForm");
+  const input = document.getElementById("suggestInput");
+  const list = document.getElementById("suggestList");
+  const status = document.getElementById("suggestStatus");
+  if(!form || !input || !list) return;
+
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const v = input.value;
+    if(!Suggestions.validate(v)){
+      if(status) status.textContent = "Type a place name (1–40 characters).";
+      return;
+    }
+    if(!Profile.isComplete()){ openOnboarding(); return; }
+    Suggestions.add(v);
+    input.value = "";
+    if(status){
+      status.textContent = "Added — everyone will see it shortly.";
+      setTimeout(() => { if(status.textContent.startsWith("Added")) status.textContent = ""; }, 2200);
+    }
+  });
+
+  Suggestions.subscribe(arr => {
+    const groups = aggregateSuggestions(arr);
+    if(!groups.length){
+      list.innerHTML = `<div class="suggest-empty">No suggestions yet. The group sees the list, but not who suggested what.</div>`;
+      return;
+    }
+    list.innerHTML = groups.map(g => `
+      <div class="suggest-item">
+        <span class="si-name">${escapeHTML(g.name)}</span>
+        <span class="si-count">${g.count} ${g.count === 1 ? "person" : "people"}</span>
+      </div>`).join("");
+  });
+}
+
+/* ============================================================
    3) SHARED STATE + HELPERS
    ============================================================ */
 const byId = id => PLACES.find(p=>p.id===id);
@@ -897,6 +1025,7 @@ function renderMyRoute(map){
 
 function initPlaces(){
   buildChart();
+  initSuggestions();
   const grid=document.getElementById("grid");
   PLACES.forEach((d,i)=>{
     const c=document.createElement("div");

@@ -332,6 +332,39 @@ body.reveal-fallback .reveal:not(.in){opacity:1;transform:none;transition:opacit
 .rb-y{color:var(--yes)} .rb-m{color:var(--maybe)} .rb-s{color:var(--ink-3)}
 .res-voters{margin-top:28px;padding:14px 18px;text-align:center;background:var(--bg-2);border-radius:12px;font-size:14px;color:var(--ink-2);line-height:1.6}
 .res-voters b{color:var(--ink);font-weight:600}
+.res-voters .rv-dim{color:var(--ink-3);font-size:13px;display:block;margin-top:2px}
+
+/* ---------- place suggestions ---------- */
+.suggest-card{
+  margin-top:30px;padding:24px 26px;border-radius:18px;
+  background:var(--bg-2);border:1px solid var(--hair);
+}
+.suggest-card h3{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px;color:var(--ink)}
+.suggest-card > p{color:var(--ink-2);font-size:14.5px;margin-bottom:18px;line-height:1.5}
+.suggest-card > p b{color:var(--ink);font-weight:600}
+.suggest-form{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+.suggest-form input{
+  flex:1 1 220px;min-width:0;border:1px solid var(--hair);border-radius:12px;background:var(--bg);
+  padding:13px 16px;font-family:inherit;font-size:15px;color:var(--ink);
+}
+.suggest-form input:focus{outline:2px solid var(--accent);outline-offset:2px;border-color:var(--accent)}
+.suggest-form button{padding:13px 22px;font-size:14.5px;border-radius:12px;min-height:44px;flex:0 0 auto}
+.suggest-status{margin-top:10px;font-size:13px;color:var(--accent);font-weight:500;min-height:18px}
+.suggest-list{margin-top:18px;display:flex;flex-direction:column;gap:8px}
+.suggest-item{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;
+  padding:11px 16px;background:var(--bg);border:1px solid var(--hair);border-radius:12px;
+}
+.si-name{font-weight:600;font-size:14.5px;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.si-count{font-size:13px;color:var(--ink-3);font-weight:500;white-space:nowrap}
+.suggest-empty{color:var(--ink-3);text-align:center;padding:14px;font-size:13.5px;font-style:italic}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+@media(max-width:480px){
+  .suggest-form{flex-direction:column}
+  .suggest-form button{width:100%}
+  .suggest-card{padding:20px}
+}
 
 @media(max-width:680px){
   .res-bar{
