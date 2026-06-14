@@ -232,6 +232,13 @@ function sanitiseVote(raw){
 const PROFILE_KEY = "tripProfile";
 /** Allowed name shape: 1–24 chars, letters / digits / space / .'- (Unicode letters allowed). */
 const NAME_RX = /^[\p{L}\p{N} .'\-]{1,24}$/u;
+/** Allowed entry-city codes (best-case selector on the Travel page). */
+const VALID_ORIGINS = ["BLR", "DEL", "BOM", "CCU", "OTHER"];
+/** Allowed exit-airport codes from Vietnam. */
+const VALID_EXITS = ["HAN", "DAD", "SGN", "OPEN"];
+/** Display labels mapped from the codes — used by the trip-story and Travel UI. */
+const ORIGIN_LABEL = { BLR:"Bengaluru", DEL:"Delhi", BOM:"Mumbai", CCU:"Kolkata", OTHER:"another city" };
+const EXIT_LABEL   = { HAN:"Hanoi", DAD:"Da Nang", SGN:"Ho Chi Minh City", OPEN:"an open option" };
 
 const Profile = {
   /** Reads, validates and returns the profile (or `{}` if missing/invalid). */
@@ -250,6 +257,8 @@ const Profile = {
     if(Number.isInteger(raw.groupSize) && raw.groupSize >= 1 && raw.groupSize <= 20) p.groupSize = raw.groupSize;
     if(Number.isInteger(raw.budgetPP) && raw.budgetPP >= 0 && raw.budgetPP <= 5000000) p.budgetPP = raw.budgetPP;
     if(Number.isInteger(raw.bufferPP) && raw.bufferPP >= 0 && raw.bufferPP <= 5000000) p.bufferPP = raw.bufferPP;
+    if(typeof raw.origin === "string" && VALID_ORIGINS.includes(raw.origin)) p.origin = raw.origin;
+    if(typeof raw.exit === "string" && VALID_EXITS.includes(raw.exit)) p.exit = raw.exit;
     return p;
   },
   /** Writes the profile. Caller is responsible for validation (onboarding uses ONB_STEPS validators). */
@@ -1349,6 +1358,53 @@ function renderHomeGreeting(){
 
 function initResults(){ renderResults(); }
 
+/**
+ * Travel page — wires up the best-case route selector (entry city + exit airport).
+ * Saves the user's pick to Profile; visible only to them, used by the trip-story
+ * paragraph for a friendlier opening line. Selecting is optional.
+ */
+function initTravel(){
+  const groups = document.querySelectorAll(".tp-opts");
+  if(!groups.length) return;
+  const summary = document.getElementById("tpSummary");
+  const renderSummary = () => {
+    if(!summary) return;
+    const p = Profile.get();
+    const o = p.origin ? ORIGIN_LABEL[p.origin] : null;
+    const x = p.exit ? EXIT_LABEL[p.exit] : null;
+    if(!o && !x){ summary.textContent = ""; return; }
+    const parts = [];
+    if(o) parts.push(`flying in from <b>${o}</b>`);
+    if(x) parts.push(p.exit === "OPEN" ? `<b>open</b> on where you exit` : `exiting via <b>${x}</b>`);
+    summary.innerHTML = `Your best-case route: ${parts.join(", ")}.`;
+  };
+  groups.forEach(group => {
+    const key = group.dataset.key;
+    const valid = key === "origin" ? VALID_ORIGINS : key === "exit" ? VALID_EXITS : null;
+    if(!valid) return;
+    const current = Profile.get()[key];
+    group.querySelectorAll(".tp-opt").forEach(btn => {
+      const isSelected = btn.dataset.val === current;
+      btn.classList.toggle("on", isSelected);
+      btn.setAttribute("aria-checked", String(isSelected));
+      btn.addEventListener("click", () => {
+        const v = btn.dataset.val;
+        if(!valid.includes(v)){ Log.warn("initTravel", "invalid value", v); return; }
+        const p = Profile.get();
+        p[key] = v;
+        Profile.set(p);
+        group.querySelectorAll(".tp-opt").forEach(b => {
+          const on = b.dataset.val === v;
+          b.classList.toggle("on", on);
+          b.setAttribute("aria-checked", String(on));
+        });
+        renderSummary();
+      });
+    });
+  });
+  renderSummary();
+}
+
 /* ============================================================
    TRIP STORY — the closing-scene block on the Results page.
    Pure render: derives everything from the live votes + Profile,
@@ -1390,37 +1446,48 @@ function _storyCostPP(stops){
   return flights + visa + nights * perDay + Math.max(0, stops.length - 1) * perTransfer;
 }
 
+/** Soft "best case" sentence appended to the story when the user has picked an origin / exit. */
+function _flightCoda(){
+  const p = Profile.get();
+  const o = p.origin ? ORIGIN_LABEL[p.origin] : null;
+  const x = (p.exit && p.exit !== "OPEN") ? EXIT_LABEL[p.exit] : null;
+  if(!o && !x) return "";
+  if(o && x) return ` Best case: flying in from <b>${o}</b>, exiting via <b>${x}</b>.`;
+  if(o)      return ` Best case: flying in from <b>${o}</b>.`;
+  return                 ` Best case: exit via <b>${x}</b>.`;
+}
+
 /** Builds the story paragraph for N stops. Plain English, no jargon, no abbreviations. */
 function composeStoryParagraph(stops, mode){
   const n = stops.length;
   if(n === 0) return "";
   const totalNights = stops.reduce((s, p) => s + _storyNights(p), 0);
   const cost = formatINR(_storyCostPP(stops));
-  const subject = mode === "mine" ? "Your trip" : "Your group's trip";
-
+  const coda = _flightCoda();
+  let body;
   if(n === 1){
     const p = stops[0];
-    return `${subject} would be quietly simple &mdash; <b>${totalNights} ${totalNights === 1 ? "night" : "nights"} in ${escapeHTML(p.name)}</b>. Around <b>${cost}</b> per person.`;
+    body = `Quietly simple &mdash; <b>${totalNights} ${totalNights === 1 ? "night" : "nights"} in ${escapeHTML(p.name)}</b>. Around <b>${cost}</b> per person.`;
+  } else {
+    const first = escapeHTML(stops[0].name);
+    const last = escapeHTML(stops[n - 1].name);
+    if(n === 2){
+      body = `A focused <b>${totalNights}-day</b> trip &mdash; <b>${first}</b>, then <b>${last}</b>. Around <b>${cost}</b> per person.`;
+    } else if(n === 3){
+      const mid = escapeHTML(stops[1].name);
+      body = `<b>${totalNights} days</b> across <b>${first}</b>, <b>${mid}</b> and <b>${last}</b>. Around <b>${cost}</b> per person.`;
+    } else if(n === 4){
+      const middles = stops.slice(1, -1).map(p => escapeHTML(p.name)).join(" and ");
+      body = `<b>${totalNights} days</b> starting in <b>${first}</b>, through ${middles}, ending in <b>${last}</b>. Around <b>${cost}</b> per person.`;
+    } else {
+      const middlesArr = stops.slice(1, -1).map(p => escapeHTML(p.name));
+      const middles = middlesArr.length <= 3
+        ? middlesArr.slice(0, -1).join(", ") + " and " + middlesArr[middlesArr.length - 1]
+        : `${middlesArr.slice(0, 2).join(", ")} and ${middlesArr.length - 2} more`;
+      body = `<b>${totalNights} days, ${n} stops</b> &mdash; starting in <b>${first}</b>, working south through ${middles}, ending in <b>${last}</b>. Around <b>${cost}</b> per person.`;
+    }
   }
-  const first = escapeHTML(stops[0].name);
-  const last = escapeHTML(stops[n - 1].name);
-  if(n === 2){
-    return `${subject}: a focused <b>${totalNights}-day</b> trip &mdash; <b>${first}</b>, then <b>${last}</b>. Around <b>${cost}</b> per person.`;
-  }
-  if(n === 3){
-    const mid = escapeHTML(stops[1].name);
-    return `${subject}: <b>${totalNights} days</b> across <b>${first}</b>, <b>${mid}</b> and <b>${last}</b>. Around <b>${cost}</b> per person.`;
-  }
-  if(n === 4){
-    const middles = stops.slice(1, -1).map(p => escapeHTML(p.name)).join(" and ");
-    return `${subject}: <b>${totalNights} days</b> starting in <b>${first}</b>, through ${middles}, ending in <b>${last}</b>. Around <b>${cost}</b> per person.`;
-  }
-  // 5+ stops — summarise the middle so the sentence stays readable
-  const middlesArr = stops.slice(1, -1).map(p => escapeHTML(p.name));
-  const middles = middlesArr.length <= 3
-    ? middlesArr.slice(0, -1).join(", ") + " and " + middlesArr[middlesArr.length - 1]
-    : `${middlesArr.slice(0, 2).join(", ")} and ${middlesArr.length - 2} more`;
-  return `${subject}: <b>${totalNights} days, ${n} stops</b> &mdash; starting in <b>${first}</b>, working south through ${middles}, ending in <b>${last}</b>. Around <b>${cost}</b> per person.`;
+  return body + coda;
 }
 
 /** Renders the small horizontal strip of stop chips with km between. */
@@ -1441,7 +1508,7 @@ function renderStoryStrip(stops){
 function renderStoryToggle(mode){
   return `
     <div class="story-toggle" role="tablist" aria-label="Trip view">
-      <button class="story-tab ${mode === "group" ? "on" : ""}" data-mode="group" role="tab" aria-selected="${mode === "group"}">Group's trip</button>
+      <button class="story-tab ${mode === "group" ? "on" : ""}" data-mode="group" role="tab" aria-selected="${mode === "group"}">Most selected</button>
       <button class="story-tab ${mode === "mine" ? "on" : ""}" data-mode="mine" role="tab" aria-selected="${mode === "mine"}">My picks</button>
     </div>`;
 }
@@ -1461,8 +1528,8 @@ function renderTripStory(){
     host.innerHTML = `
       ${renderStoryToggle(mode)}
       <p class="story-empty">${mode === "mine"
-        ? "Cast a few Yes or Maybe votes and this is where your trip's story will land."
-        : "When the group's votes settle, this is where the trip's story will land."}</p>`;
+        ? "Cast a few Yes or Maybe votes and your picks will land here."
+        : "When the group's votes come in, the most-selected places will land here."}</p>`;
     bindStoryToggle(host);
     return;
   }
@@ -1472,7 +1539,7 @@ function renderTripStory(){
 
   host.innerHTML = `
     ${renderStoryToggle(mode)}
-    <h3 class="story-headline">${mode === "mine" ? "Your trip is taking shape." : "The group's trip is taking shape."}</h3>
+    <h3 class="story-headline">${mode === "mine" ? "Your picks so far." : "Most selected so far."}</h3>
     <p class="story-paragraph">${composeStoryParagraph(stops, mode)}</p>
     <div class="story-strip" aria-label="Stops and distances">${renderStoryStrip(stops)}</div>
     <p class="story-note">A rough first draft &mdash; verify before booking anything.</p>`;
@@ -1525,17 +1592,12 @@ function renderResults(){
         const yesPct = (r.yes.length * 2 / maxPossible) * 100;
         const maybePct = (r.maybe.length / maxPossible) * 100;
         return `
-          <div class="res-bar" role="listitem" tabindex="0" data-id="${r.d.id}" aria-label="Rank ${i+1}: ${escapeHTML(r.d.name)}, score ${r.score} of ${maxPossible}, ${r.yes.length} yes, ${r.maybe.length} maybe, ${r.skip.length} skip">
+          <div class="res-bar" role="listitem" tabindex="0" data-id="${r.d.id}" aria-label="Rank ${i+1}: ${escapeHTML(r.d.name)}, ${r.yes.length} yes, ${r.maybe.length} maybe, ${r.skip.length} skip">
             <div class="rb-rank">#${i+1}</div>
             <div class="rb-name">${escapeHTML(r.d.name)}</div>
             <div class="rb-track">
               <div class="rb-fill-yes" style="width:${yesPct}%"></div>
               <div class="rb-fill-maybe" style="width:${maybePct}%;left:${yesPct}%"></div>
-            </div>
-            <div class="rb-counts">
-              <span class="rb-y">&#10003; ${r.yes.length}</span>
-              <span class="rb-m">~ ${r.maybe.length}</span>
-              <span class="rb-s">&#10007; ${r.skip.length}</span>
             </div>
           </div>`;
       }).join("")}
@@ -1587,6 +1649,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(page==="map") initMap();
   else if(page==="places") initPlaces();
   else if(page==="routes") initRoutes();
+  else if(page==="travel") initTravel();
   else if(page==="results") initResults();
   if(page==="home"){ initHero(); renderHomeGreeting(); }
 
